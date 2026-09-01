@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Contact as ContactIcon, History, Mail, Search, Send, Settings } from 'lucide-react'
+import {
+  Contact as ContactIcon,
+  History,
+  Mail,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  Send,
+  Settings
+} from 'lucide-react'
 import type { Contact, OutlookAdapter } from '../../shared/types'
 import { useDialog } from './components/dialogs'
 import CommandPalette, { type ViewKey } from './components/CommandPalette'
@@ -29,9 +38,19 @@ function initialView(): ViewKey {
   return VIEW_KEYS.includes(v as ViewKey) ? (v as ViewKey) : 'contacts'
 }
 
+function initialExpanded(): boolean {
+  try {
+    return localStorage.getItem('rail-expanded') === '1'
+  } catch {
+    return false
+  }
+}
+
 export default function App(): React.JSX.Element {
   const [view, setView] = useState<ViewKey>(initialView)
   const [outlookMode, setOutlookMode] = useState<OutlookAdapter | null>(null)
+  const [expanded, setExpanded] = useState(initialExpanded)
+  const [version, setVersion] = useState('')
   const [paletteOpen, setPaletteOpen] = useState(
     () => typeof window !== 'undefined' && window.location.search.includes('palette=1')
   )
@@ -41,12 +60,12 @@ export default function App(): React.JSX.Element {
   } | null>(null)
   const [newContactSignal, setNewContactSignal] = useState(0)
   const [importSignal, setImportSignal] = useState(0)
-
   const { toast } = useDialog()
   const updateNotifiedRef = useRef<string | null>(null)
 
   useEffect(() => {
     window.api.system.outlookMode().then(setOutlookMode)
+    window.api.system.version().then(setVersion)
   }, [])
 
   useEffect(() => {
@@ -69,6 +88,17 @@ export default function App(): React.JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  const toggleExpanded = (): void => {
+    setExpanded((prev) => {
+      try {
+        localStorage.setItem('rail-expanded', prev ? '0' : '1')
+      } catch {
+        /* 저장 실패는 무시 */
+      }
+      return !prev
+    })
+  }
+
   const openNewContact = useCallback(() => {
     setView('contacts')
     setNewContactSignal((n) => n + 1)
@@ -79,40 +109,70 @@ export default function App(): React.JSX.Element {
     setImportSignal((n) => n + 1)
   }, [])
 
+  const tip = (label: string): { 'data-tip'?: string } =>
+    expanded ? {} : { 'data-tip': label }
+
   return (
     <div className="app">
-      <aside className="rail">
-        <div className="logo-mark" title="whenimail">
-          <Send size={15} color="#fff" strokeWidth={2.2} />
+      <aside className={`rail ${expanded ? 'expanded' : ''}`}>
+        <div className="logo-row" title="whenimail">
+          <span className="logo-mark">
+            <Send size={15} color="#fff" strokeWidth={2.2} />
+          </span>
+          <span className="rail-label logo-name">whenimail</span>
         </div>
         <button
           className="rail-item rail-search"
-          data-tip="검색·실행 (Ctrl+K)"
+          {...tip('검색·실행 (Ctrl+K)')}
           aria-label="검색 및 실행 (Ctrl+K)"
           onClick={() => setPaletteOpen(true)}
         >
           <Search size={18} strokeWidth={1.9} />
+          <span className="rail-label">
+            검색·실행 <kbd className="rail-kbd">Ctrl K</kbd>
+          </span>
         </button>
         <nav className="rail-nav">
           {NAV.map(({ key, label, Icon }) => (
             <button
               key={key}
               className={`rail-item ${view === key ? 'active' : ''}`}
-              data-tip={label}
+              {...tip(label)}
               aria-label={label}
               onClick={() => setView(key)}
             >
               <Icon size={18} strokeWidth={1.9} />
+              <span className="rail-label">{label}</span>
             </button>
           ))}
         </nav>
-        <div className="rail-footer">
-          <span
-            className={`mode-dot ${outlookMode ?? 'unknown'}`}
-            data-tip={outlookMode ? MODE_LABEL[outlookMode] : '연동 확인 중…'}
-            role="status"
-            aria-label={outlookMode ? MODE_LABEL[outlookMode] : '연동 확인 중'}
-          />
+        <div className="rail-bottom">
+          <button
+            className="rail-item"
+            {...tip(expanded ? '사이드바 접기' : '사이드바 펼치기')}
+            aria-label={expanded ? '사이드바 접기' : '사이드바 펼치기'}
+            aria-expanded={expanded}
+            onClick={toggleExpanded}
+          >
+            {expanded ? (
+              <PanelLeftClose size={18} strokeWidth={1.9} />
+            ) : (
+              <PanelLeftOpen size={18} strokeWidth={1.9} />
+            )}
+            <span className="rail-label">접기</span>
+          </button>
+          <div className="rail-footer">
+            <span
+              className={`mode-dot ${outlookMode ?? 'unknown'}`}
+              {...tip(outlookMode ? MODE_LABEL[outlookMode] : '연동 확인 중…')}
+              role="status"
+              aria-label={outlookMode ? MODE_LABEL[outlookMode] : '연동 확인 중'}
+            />
+            <span className="rail-label rail-mode-text">
+              {outlookMode ? MODE_LABEL[outlookMode] : '연동 확인 중…'}
+            </span>
+          </div>
+          <div className="rail-version rail-label">whenimail {version && `v${version}`}</div>
         </div>
       </aside>
       <main className="content">
