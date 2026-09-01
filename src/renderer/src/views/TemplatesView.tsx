@@ -15,26 +15,8 @@ export default function TemplatesView(): React.JSX.Element {
   const bodyRef = useRef<HTMLTextAreaElement>(null)
   const { confirm, toast } = useDialog()
 
-  const reload = async (keepId?: number): Promise<void> => {
-    const list = await window.api.templates.list()
-    setTemplates(list)
-    if (keepId !== undefined) await selectTemplate(list.find((t) => t.id === keepId) ?? null)
-  }
-
-  useEffect(() => {
-    reload()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const selectTemplate = async (t: EmailTemplate | null | 'new'): Promise<void> => {
-    if (dirty) {
-      const ok = await confirm({
-        title: '저장하지 않은 변경',
-        message: '저장하지 않은 변경이 있습니다. 이동하면 변경 내용이 사라집니다.',
-        confirmLabel: '이동'
-      })
-      if (!ok) return
-    }
+  /** dirty 검사 없이 선택 상태만 반영 — 저장 후 재선택 등 내부용 */
+  const applySelection = (t: EmailTemplate | null | 'new'): void => {
     if (t === 'new') {
       setSelectedId('new')
       setForm(EMPTY)
@@ -46,6 +28,30 @@ export default function TemplatesView(): React.JSX.Element {
       setForm(EMPTY)
     }
     setDirty(false)
+  }
+
+  const reload = async (keepId?: number): Promise<void> => {
+    const list = await window.api.templates.list()
+    setTemplates(list)
+    if (keepId !== undefined) applySelection(list.find((t) => t.id === keepId) ?? null)
+  }
+
+  useEffect(() => {
+    reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** 사용자가 목록에서 이동할 때 — 저장 안 된 변경이 있으면 확인 */
+  const selectTemplate = async (t: EmailTemplate | null | 'new'): Promise<void> => {
+    if (dirty) {
+      const ok = await confirm({
+        title: '저장하지 않은 변경',
+        message: '저장하지 않은 변경이 있습니다. 이동하면 변경 내용이 사라집니다.',
+        confirmLabel: '이동'
+      })
+      if (!ok) return
+    }
+    applySelection(t)
   }
 
   const set = (key: keyof TemplateInput, value: string): void => {
