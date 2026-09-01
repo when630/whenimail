@@ -20,6 +20,21 @@ npm run build:win  # Windows 설치본 빌드
 
 스택: Electron + React + TypeScript + Vite / better-sqlite3 / tesseract.js / electron-builder
 
+## 릴리즈 방법
+
+자동 업데이트(electron-updater)가 GitHub 릴리즈를 읽으므로, 릴리즈에는 반드시 세 자산을 함께 올린다:
+
+```bash
+# 1. package.json version 올리고 커밋
+# 2. 빌드
+npm run build && npx electron-builder --win --publish never
+# 3. 태그 + 릴리즈 (setup.exe / latest.yml / blockmap 필수)
+git tag vX.Y.Z && git push origin vX.Y.Z
+gh release create vX.Y.Z dist/whenimail-X.Y.Z-setup.exe dist/latest.yml dist/whenimail-X.Y.Z-setup.exe.blockmap --title "whenimail vX.Y.Z" --notes "..."
+```
+
+`latest.yml`이 빠지면 설치된 앱이 새 버전을 감지하지 못한다.
+
 ## 문서
 
 - [설계 문서](docs/01_설계.md) — 요구사항, IA, UX 플로우, 데이터 모델, Outlook 어댑터 전략, 마일스톤
