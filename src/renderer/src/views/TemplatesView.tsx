@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { CircleAlert, Mail, Plus, Save, Trash2 } from 'lucide-react'
 import type { EmailTemplate, TemplateInput } from '../../../shared/types'
 import { TEMPLATE_VARIABLES } from '../../../shared/render'
+import { useDialog } from '../components/dialogs'
 
 const EMPTY: TemplateInput = { name: '', subject_tpl: '', body_tpl: '' }
 
@@ -12,11 +13,12 @@ export default function TemplatesView(): React.JSX.Element {
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const { confirm, toast } = useDialog()
 
   const reload = async (keepId?: number): Promise<void> => {
     const list = await window.api.templates.list()
     setTemplates(list)
-    if (keepId !== undefined) selectTemplate(list.find((t) => t.id === keepId) ?? null)
+    if (keepId !== undefined) await selectTemplate(list.find((t) => t.id === keepId) ?? null)
   }
 
   useEffect(() => {
@@ -24,8 +26,15 @@ export default function TemplatesView(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const selectTemplate = (t: EmailTemplate | null | 'new'): void => {
-    if (dirty && !confirm('저장하지 않은 변경이 있습니다. 이동할까요?')) return
+  const selectTemplate = async (t: EmailTemplate | null | 'new'): Promise<void> => {
+    if (dirty) {
+      const ok = await confirm({
+        title: '저장하지 않은 변경',
+        message: '저장하지 않은 변경이 있습니다. 이동하면 변경 내용이 사라집니다.',
+        confirmLabel: '이동'
+      })
+      if (!ok) return
+    }
     if (t === 'new') {
       setSelectedId('new')
       setForm(EMPTY)
@@ -73,18 +82,26 @@ export default function TemplatesView(): React.JSX.Element {
         await reload(selectedId)
       }
       setDirty(false)
+      toast('저장되었습니다')
     } finally {
       setSaving(false)
     }
   }
 
   const remove = async (t: EmailTemplate): Promise<void> => {
-    if (!confirm(`'${t.name}' 템플릿을 삭제할까요?`)) return
+    const ok = await confirm({
+      title: '템플릿 삭제',
+      message: `'${t.name}' 템플릿을 삭제할까요?`,
+      confirmLabel: '삭제',
+      danger: true
+    })
+    if (!ok) return
     await window.api.templates.remove(t.id)
     setSelectedId(null)
     setForm(EMPTY)
     setDirty(false)
     await reload()
+    toast('삭제되었습니다')
   }
 
   return (

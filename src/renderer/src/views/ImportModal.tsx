@@ -6,6 +6,7 @@ import type {
   ImportParseResult,
   ImportSummary
 } from '../../../shared/types'
+import { useDialog } from '../components/dialogs'
 
 const FIELDS: { key: keyof ContactInput; label: string; aliases: string[] }[] = [
   { key: 'name', label: '이름', aliases: ['이름', '성명', 'name', '담당자'] },
@@ -53,6 +54,7 @@ export default function ImportModal({ onClose }: Props): React.JSX.Element {
   const [policy, setPolicy] = useState<DuplicatePolicy>('skip')
   const [busy, setBusy] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
+  const { toast } = useDialog()
 
   const pickFile = async (): Promise<void> => {
     setBusy(true)
@@ -63,7 +65,7 @@ export default function ImportModal({ onClose }: Props): React.JSX.Element {
         setMapping(guessMapping(result.headers))
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast(e instanceof Error ? e.message : String(e), 'error')
     } finally {
       setBusy(false)
     }
@@ -88,7 +90,7 @@ export default function ImportModal({ onClose }: Props): React.JSX.Element {
     try {
       setSummary(await window.api.import.commit(mappedRows, policy))
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast(e instanceof Error ? e.message : String(e), 'error')
     } finally {
       setBusy(false)
     }

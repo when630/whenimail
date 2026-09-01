@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import type { Contact, DraftResult, EmailTemplate } from '../../../shared/types'
 import { renderTemplate } from '../../../shared/render'
+import { useDialog } from '../components/dialogs'
 
 interface Props {
   contacts: Contact[]
@@ -30,6 +31,7 @@ export default function ComposeModal({
   const [previewIdx, setPreviewIdx] = useState(0)
   const [sending, setSending] = useState(false)
   const [results, setResults] = useState<DraftResult[] | null>(null)
+  const { toast } = useDialog()
 
   useEffect(() => {
     window.api.templates.list().then((list) => {
@@ -63,7 +65,7 @@ export default function ComposeModal({
         )
       )
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast(e instanceof Error ? e.message : String(e), 'error')
     } finally {
       setSending(false)
     }

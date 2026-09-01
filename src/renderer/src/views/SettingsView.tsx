@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Archive, Database, FolderOpen, Loader2, MailCheck, RotateCcw } from 'lucide-react'
 import type { OutlookAdapter } from '../../../shared/types'
+import { useDialog } from '../components/dialogs'
 
 const MODE_DESC: Record<OutlookAdapter, string> = {
   com: '클래식 Outlook이 설치되어 있어 COM 자동화로 초안을 엽니다. HTML 본문이 완전하게 지원됩니다.',
@@ -14,31 +15,34 @@ export default function SettingsView({
   outlookMode: OutlookAdapter | null
 }): React.JSX.Element {
   const [busy, setBusy] = useState<'export' | 'import' | null>(null)
+  const { confirm, toast } = useDialog()
 
   const exportBackup = async (): Promise<void> => {
     setBusy('export')
     try {
       const saved = await window.api.backup.export()
-      if (saved) alert(`백업이 저장되었습니다:\n${saved}`)
+      if (saved) toast(`백업이 저장되었습니다 — ${saved}`)
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast(e instanceof Error ? e.message : String(e), 'error')
     } finally {
       setBusy(null)
     }
   }
 
   const importBackup = async (): Promise<void> => {
-    if (
-      !confirm(
-        '복원하면 현재 명함·템플릿·이력이 백업 파일 내용으로 교체되고 앱이 다시 시작됩니다.\n계속할까요?'
-      )
-    )
-      return
+    const ok = await confirm({
+      title: '백업에서 복원',
+      message:
+        '복원하면 현재 명함·템플릿·이력이 백업 파일 내용으로 교체되고 앱이 다시 시작됩니다.\n계속할까요?',
+      confirmLabel: '복원',
+      danger: true
+    })
+    if (!ok) return
     setBusy('import')
     try {
       await window.api.backup.import()
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast(e instanceof Error ? e.message : String(e), 'error')
     } finally {
       setBusy(null)
     }

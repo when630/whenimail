@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
 import Avatar from '../components/Avatar'
+import { useDialog } from '../components/dialogs'
 import ContactForm from './ContactForm'
 import ComposeModal from './ComposeModal'
 import ImportModal from './ImportModal'
@@ -28,6 +29,7 @@ export default function ContactsView({
   const [editing, setEditing] = useState<Contact | 'new' | null>(null)
   const [composeTargets, setComposeTargets] = useState<Contact[] | null>(null)
   const [importing, setImporting] = useState(false)
+  const { confirm, toast } = useDialog()
 
   const reload = useCallback(async (q?: string) => {
     setContacts(await window.api.contacts.list(q))
@@ -63,14 +65,22 @@ export default function ContactsView({
   }
 
   const save = async (input: ContactInput): Promise<void> => {
-    if (editing === 'new') await window.api.contacts.create(input)
+    const isNew = editing === 'new'
+    if (isNew) await window.api.contacts.create(input)
     else if (editing) await window.api.contacts.update(editing.id, input)
     setEditing(null)
     await reload(search)
+    toast(isNew ? '명함이 등록되었습니다' : '저장되었습니다')
   }
 
   const remove = async (contact: Contact): Promise<void> => {
-    if (!confirm(`'${contact.name}' 명함을 삭제할까요?`)) return
+    const ok = await confirm({
+      title: '명함 삭제',
+      message: `'${contact.name}' 명함을 삭제할까요?\n삭제한 명함은 되돌릴 수 없습니다.`,
+      confirmLabel: '삭제',
+      danger: true
+    })
+    if (!ok) return
     await window.api.contacts.remove(contact.id)
     setSelected((prev) => {
       const next = new Set(prev)
@@ -78,12 +88,13 @@ export default function ContactsView({
       return next
     })
     await reload(search)
+    toast('삭제되었습니다')
   }
 
   const openCompose = (targets: Contact[]): void => {
     const withEmail = targets.filter((c) => c.email.trim())
     if (withEmail.length === 0) {
-      alert('선택한 명함에 이메일 주소가 없습니다.')
+      toast('선택한 명함에 이메일 주소가 없습니다', 'warn')
       return
     }
     setComposeTargets(targets)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2, ScanLine, X } from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
+import { useDialog } from '../components/dialogs'
 
 const EMPTY: ContactInput = {
   name: '',
@@ -55,6 +56,7 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
   const [saving, setSaving] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [cardPreview, setCardPreview] = useState<string | null>(null)
+  const { toast } = useDialog()
 
   useEffect(() => {
     if (contact?.card_image_path) {
@@ -86,8 +88,9 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
         return next
       })
       setCardPreview(result.imageDataUrl)
+      toast('명함에서 정보를 추출했습니다. 내용을 확인해 주세요', 'info')
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast(e instanceof Error ? e.message : String(e), 'error')
     } finally {
       setScanning(false)
     }
