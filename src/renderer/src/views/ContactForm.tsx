@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
 
 const EMPTY: ContactInput = {
@@ -68,7 +69,12 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{contact ? '명함 편집' : '명함 등록'}</h2>
+        <div className="modal-header">
+          <h2>{contact ? '명함 편집' : '명함 등록'}</h2>
+          <button type="button" className="btn ghost sm icon-only" aria-label="닫기" onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
         <form onSubmit={submit}>
           <div className="form-grid">
             {FIELDS.map((f) => (

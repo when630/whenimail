@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { CircleAlert, Mail, Plus, Save, Trash2 } from 'lucide-react'
 import type { EmailTemplate, TemplateInput } from '../../../shared/types'
 import { TEMPLATE_VARIABLES } from '../../../shared/render'
 
@@ -92,11 +93,14 @@ export default function TemplatesView(): React.JSX.Element {
         <header className="view-header">
           <h1>템플릿</h1>
           <button className="btn" onClick={() => selectTemplate('new')}>
-            + 새 템플릿
+            <Plus size={15} />새 템플릿
           </button>
         </header>
         {templates.length === 0 ? (
-          <div className="empty">템플릿이 없습니다.</div>
+          <div className="empty">
+            <Mail size={32} strokeWidth={1.4} />
+            <span className="empty-title">템플릿이 없습니다</span>
+          </div>
         ) : (
           <ul className="side-list">
             {templates.map((t) => (
@@ -115,7 +119,11 @@ export default function TemplatesView(): React.JSX.Element {
 
       <div className="split-editor">
         {selectedId === null ? (
-          <div className="empty">왼쪽에서 템플릿을 선택하거나 새로 만드세요.</div>
+          <div className="empty">
+            <Mail size={32} strokeWidth={1.4} />
+            <span className="empty-title">템플릿을 선택하세요</span>
+            <span>왼쪽 목록에서 선택하거나 새로 만들 수 있습니다.</span>
+          </div>
         ) : (
           <>
             <label className="form-field">
@@ -149,18 +157,25 @@ export default function TemplatesView(): React.JSX.Element {
             <div className="editor-actions">
               {typeof selectedId === 'number' && (
                 <button
-                  className="btn danger"
+                  className="btn ghost danger"
                   onClick={() => {
                     const t = templates.find((x) => x.id === selectedId)
                     if (t) remove(t)
                   }}
                 >
+                  <Trash2 size={15} />
                   삭제
                 </button>
               )}
               <span className="spacer" />
-              {dirty && <span className="dirty-hint">저장되지 않음</span>}
+              {dirty && (
+                <span className="dirty-hint">
+                  <CircleAlert size={14} />
+                  저장되지 않음
+                </span>
+              )}
               <button className="btn primary" onClick={save} disabled={saving || !form.name.trim()}>
+                <Save size={15} />
                 저장
               </button>
             </div>

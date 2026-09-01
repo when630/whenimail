@@ -1,4 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  MailX,
+  TriangleAlert,
+  X,
+  XCircle
+} from 'lucide-react'
 import type { Contact, DraftResult, EmailTemplate } from '../../../shared/types'
 import { renderTemplate } from '../../../shared/render'
 
@@ -53,14 +62,20 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-        <h2>메일 초안 만들기</h2>
+        <div className="modal-header">
+          <h2>메일 초안 만들기</h2>
+          <button className="btn ghost sm icon-only" aria-label="닫기" onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
 
         {results ? (
           <div className="compose-results">
             <ul className="result-list">
               {results.map((r) => (
                 <li key={r.contactId} className={r.ok ? 'ok' : 'fail'}>
-                  {r.ok ? '✅' : '❌'} {r.contactName}
+                  {r.ok ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                  {r.contactName}
                   {r.ok ? ` — 초안 열림 (${r.adapter})` : ` — ${r.error}`}
                 </li>
               ))}
@@ -74,12 +89,9 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
           </div>
         ) : templates.length === 0 ? (
           <div className="empty">
-            템플릿이 없습니다. 템플릿 메뉴에서 먼저 템플릿을 만들어 주세요.
-            <div className="modal-actions">
-              <button className="btn" onClick={onClose}>
-                닫기
-              </button>
-            </div>
+            <MailX size={32} strokeWidth={1.4} />
+            <span className="empty-title">템플릿이 없습니다</span>
+            <span>템플릿 메뉴에서 먼저 템플릿을 만들어 주세요.</span>
           </div>
         ) : (
           <>
@@ -99,28 +111,30 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
               </label>
               <div className="compose-recipients">
                 받는 사람 {targets.length}명
-                {skipped > 0 && <span className="warn-badge">이메일 없는 {skipped}명 제외됨</span>}
+                {skipped > 0 && <span className="badge warn">이메일 없는 {skipped}명 제외</span>}
               </div>
             </div>
 
             {targets.length > 1 && (
               <div className="preview-nav">
                 <button
-                  className="btn sm"
+                  className="btn ghost sm icon-only"
+                  aria-label="이전 수신자"
                   disabled={previewIdx === 0}
                   onClick={() => setPreviewIdx((i) => i - 1)}
                 >
-                  ◀
+                  <ChevronLeft size={15} />
                 </button>
                 <span>
                   미리보기 {previewIdx + 1} / {targets.length} — {previewContact?.name}
                 </span>
                 <button
-                  className="btn sm"
+                  className="btn ghost sm icon-only"
+                  aria-label="다음 수신자"
                   disabled={previewIdx >= targets.length - 1}
                   onClick={() => setPreviewIdx((i) => i + 1)}
                 >
-                  ▶
+                  <ChevronRight size={15} />
                 </button>
               </div>
             )}
@@ -142,10 +156,13 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
                   <ul className="warning-list">
                     {preview.warnings.map((w, i) => (
                       <li key={i}>
-                        ⚠️ <code>{`{{${w.variable}}}`}</code>
-                        {w.usedDefault !== null
-                          ? ` 값이 비어 기본값 '${w.usedDefault}'이(가) 사용됩니다`
-                          : ' 값이 비어 있어 치환되지 않습니다'}
+                        <TriangleAlert size={14} />
+                        <span>
+                          <code>{`{{${w.variable}}}`}</code>
+                          {w.usedDefault !== null
+                            ? ` 값이 비어 기본값 '${w.usedDefault}'이(가) 사용됩니다`
+                            : ' 값이 비어 있어 치환되지 않습니다'}
+                        </span>
                       </li>
                     ))}
                   </ul>

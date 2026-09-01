@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ContactRound, Pencil, Plus, Search, SendHorizontal, Trash2 } from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
 import ContactForm from './ContactForm'
 import ComposeModal from './ComposeModal'
@@ -62,79 +63,116 @@ export default function ContactsView(): React.JSX.Element {
       <header className="view-header">
         <h1>명함</h1>
         <div className="toolbar">
-          <input
-            className="search"
-            placeholder="이름·회사·이메일 검색"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="search-box">
+            <Search size={15} />
+            <input
+              placeholder="이름·회사·이메일 검색"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
           <button
             className="btn primary"
             disabled={selected.size === 0}
             onClick={() => openCompose(selectedContacts)}
           >
-            ✉️ 메일 쓰기{selected.size > 0 ? ` (${selected.size})` : ''}
+            <SendHorizontal size={15} />
+            메일 쓰기{selected.size > 0 ? ` (${selected.size})` : ''}
           </button>
           <button className="btn" onClick={() => setEditing('new')}>
-            + 명함 등록
+            <Plus size={15} />
+            명함 등록
           </button>
         </div>
       </header>
 
       {contacts.length === 0 ? (
         <div className="empty">
-          {search ? '검색 결과가 없습니다.' : '아직 등록된 명함이 없습니다. 첫 명함을 등록해 보세요.'}
+          <ContactRound size={36} strokeWidth={1.4} />
+          {search ? (
+            <span className="empty-title">검색 결과가 없습니다</span>
+          ) : (
+            <>
+              <span className="empty-title">아직 등록된 명함이 없습니다</span>
+              <span>첫 명함을 등록해 보세요.</span>
+              <button className="btn primary" onClick={() => setEditing('new')}>
+                <Plus size={15} />
+                명함 등록
+              </button>
+            </>
+          )}
         </div>
       ) : (
-        <table className="table">
-          <thead>
-            <tr>
-              <th className="col-check">
-                <input
-                  type="checkbox"
-                  checked={selected.size > 0 && selected.size === contacts.length}
-                  onChange={(e) =>
-                    setSelected(e.target.checked ? new Set(contacts.map((c) => c.id)) : new Set())
-                  }
-                />
-              </th>
-              <th>이름</th>
-              <th>회사 / 부서</th>
-              <th>직함</th>
-              <th>이메일</th>
-              <th className="col-actions"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {contacts.map((c) => (
-              <tr key={c.id} className={selected.has(c.id) ? 'row-selected' : ''}>
-                <td className="col-check">
-                  <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
-                </td>
-                <td className="cell-name" onClick={() => setEditing(c)}>
-                  {c.name}
-                </td>
-                <td>
-                  {c.company}
-                  {c.department ? ` / ${c.department}` : ''}
-                </td>
-                <td>{c.title}</td>
-                <td>{c.email || <span className="warn-badge">이메일 없음</span>}</td>
-                <td className="col-actions">
-                  <button className="btn sm" onClick={() => openCompose([c])} disabled={!c.email.trim()}>
-                    메일
-                  </button>
-                  <button className="btn sm" onClick={() => setEditing(c)}>
-                    편집
-                  </button>
-                  <button className="btn sm danger" onClick={() => remove(c)}>
-                    삭제
-                  </button>
-                </td>
+        <div className="card">
+          <table className="table">
+            <thead>
+              <tr>
+                <th className="col-check">
+                  <input
+                    type="checkbox"
+                    aria-label="전체 선택"
+                    checked={selected.size > 0 && selected.size === contacts.length}
+                    onChange={(e) =>
+                      setSelected(e.target.checked ? new Set(contacts.map((c) => c.id)) : new Set())
+                    }
+                  />
+                </th>
+                <th>이름</th>
+                <th>회사 / 부서</th>
+                <th>직함</th>
+                <th>이메일</th>
+                <th className="col-actions"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {contacts.map((c) => (
+                <tr key={c.id} className={selected.has(c.id) ? 'row-selected' : ''}>
+                  <td className="col-check">
+                    <input
+                      type="checkbox"
+                      aria-label={`${c.name} 선택`}
+                      checked={selected.has(c.id)}
+                      onChange={() => toggle(c.id)}
+                    />
+                  </td>
+                  <td className="cell-name" onClick={() => setEditing(c)}>
+                    {c.name}
+                  </td>
+                  <td>
+                    {c.company}
+                    {c.department ? ` / ${c.department}` : ''}
+                  </td>
+                  <td>{c.title}</td>
+                  <td>{c.email || <span className="badge warn">이메일 없음</span>}</td>
+                  <td className="col-actions">
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => openCompose([c])}
+                      disabled={!c.email.trim()}
+                    >
+                      <SendHorizontal size={14} />
+                      메일
+                    </button>
+                    <button
+                      className="btn ghost sm icon-only"
+                      aria-label={`${c.name} 편집`}
+                      onClick={() => setEditing(c)}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      className="btn ghost sm icon-only danger"
+                      aria-label={`${c.name} 삭제`}
+                      onClick={() => remove(c)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {editing && (

@@ -1,3 +1,4 @@
+import { Database, FolderOpen, MailCheck } from 'lucide-react'
 import type { OutlookAdapter } from '../../../shared/types'
 
 const MODE_DESC: Record<OutlookAdapter, string> = {
@@ -17,10 +18,13 @@ export default function SettingsView({
         <h1>설정</h1>
       </header>
       <section className="settings-section">
-        <h2>Outlook 연동</h2>
+        <h2>
+          <MailCheck size={16} />
+          Outlook 연동
+        </h2>
         <p>
           현재 모드:{' '}
-          <span className={`mode-badge mode-${outlookMode ?? 'unknown'}`}>
+          <span className={`badge ${outlookMode ? `mode-${outlookMode}` : 'neutral'}`}>
             {outlookMode ?? '확인 중…'}
           </span>
         </p>
@@ -31,9 +35,13 @@ export default function SettingsView({
         </p>
       </section>
       <section className="settings-section">
-        <h2>데이터</h2>
+        <h2>
+          <Database size={16} />
+          데이터
+        </h2>
         <p className="muted">명함·템플릿·이력은 이 PC의 로컬 SQLite 파일에만 저장됩니다.</p>
         <button className="btn" onClick={() => window.api.system.openDataFolder()}>
+          <FolderOpen size={15} />
           데이터 폴더 열기
         </button>
       </section>
