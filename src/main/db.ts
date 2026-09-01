@@ -60,4 +60,10 @@ function migrate(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_contact_email ON contact(email);
     CREATE INDEX IF NOT EXISTS idx_draft_log_created ON draft_log(created_at);
   `)
+
+  // v2: 명함 이미지 경로 (기존 DB 마이그레이션)
+  const contactCols = db.pragma('table_info(contact)') as { name: string }[]
+  if (!contactCols.some((c) => c.name === 'card_image_path')) {
+    db.exec(`ALTER TABLE contact ADD COLUMN card_image_path TEXT NOT NULL DEFAULT ''`)
+  }
 }

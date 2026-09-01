@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Loader2, ScanLine, X } from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
 
 const EMPTY: ContactInput = {
@@ -12,7 +12,8 @@ const EMPTY: ContactInput = {
   mobile: '',
   address: '',
   website: '',
-  memo: ''
+  memo: '',
+  card_image_path: ''
 }
 
 const FIELDS: { key: keyof ContactInput; label: string; required?: boolean }[] = [
@@ -46,14 +47,51 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
           mobile: contact.mobile,
           address: contact.address,
           website: contact.website,
-          memo: contact.memo
+          memo: contact.memo,
+          card_image_path: contact.card_image_path
         }
       : EMPTY
   )
   const [saving, setSaving] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [cardPreview, setCardPreview] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (contact?.card_image_path) {
+      window.api.files
+        .imageDataUrl(contact.card_image_path)
+        .then((url) => url && setCardPreview(url))
+        .catch(() => undefined)
+    }
+  }, [contact])
 
   const set = (key: keyof ContactInput, value: string): void =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  const scan = async (): Promise<void> => {
+    setScanning(true)
+    try {
+      const result = await window.api.ocr.scanCard()
+      if (!result) return
+      // 사용자가 이미 입력한 값은 유지하고 빈 필드만 채운다
+      setForm((f) => {
+        const next = { ...f }
+        for (const [key, value] of Object.entries(result.fields) as [
+          keyof ContactInput,
+          string
+        ][]) {
+          if (!next[key]?.trim() && value) next[key] = value
+        }
+        next.card_image_path = result.imagePath
+        return next
+      })
+      setCardPreview(result.imageDataUrl)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+    } finally {
+      setScanning(false)
+    }
+  }
 
   const submit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
@@ -71,10 +109,28 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{contact ? '명함 편집' : '명함 등록'}</h2>
-          <button type="button" className="btn ghost sm icon-only" aria-label="닫기" onClick={onClose}>
-            <X size={16} />
-          </button>
+          <div className="modal-header-actions">
+            <button type="button" className="btn sm" onClick={scan} disabled={scanning}>
+              {scanning ? <Loader2 size={14} className="spin" /> : <ScanLine size={14} />}
+              {scanning ? '인식 중…' : '명함 스캔'}
+            </button>
+            <button
+              type="button"
+              className="btn ghost sm icon-only"
+              aria-label="닫기"
+              onClick={onClose}
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
+
+        {cardPreview && (
+          <div className="card-preview">
+            <img src={cardPreview} alt="명함 이미지" />
+          </div>
+        )}
+
         <form onSubmit={submit}>
           <div className="form-grid">
             {FIELDS.map((f) => (

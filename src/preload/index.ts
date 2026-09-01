@@ -9,6 +9,7 @@ import type {
   EmailTemplate,
   ImportParseResult,
   ImportSummary,
+  OcrScanResult,
   OutlookAdapter,
   TemplateInput
 } from '../shared/types'
@@ -27,6 +28,13 @@ const api: WhenimailApi = {
     pick: (): Promise<ImportParseResult | null> => ipcRenderer.invoke('import:pick'),
     commit: (rows: ContactInput[], policy: DuplicatePolicy): Promise<ImportSummary> =>
       ipcRenderer.invoke('import:commit', rows, policy)
+  },
+  ocr: {
+    scanCard: (): Promise<OcrScanResult | null> => ipcRenderer.invoke('ocr:scanCard')
+  },
+  files: {
+    imageDataUrl: (path: string): Promise<string> =>
+      ipcRenderer.invoke('files:imageDataUrl', path)
   },
   templates: {
     list: (): Promise<EmailTemplate[]> => ipcRenderer.invoke('templates:list'),

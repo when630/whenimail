@@ -1205,6 +1205,29 @@ kbd {
   gap: 5px;
 }
 
+/* ---------- contact form ---------- */
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-preview {
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-sunken);
+  display: grid;
+  place-items: center;
+}
+
+.card-preview img {
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+}
+
 /* ---------- import ---------- */
 .import-file {
   display: flex;

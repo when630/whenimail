@@ -7,6 +7,7 @@ import type {
   EmailTemplate,
   ImportParseResult,
   ImportSummary,
+  OcrScanResult,
   OutlookAdapter,
   TemplateInput
 } from './types'
@@ -24,6 +25,14 @@ export interface WhenimailApi {
     /** 파일 선택 대화상자 → 파싱. 취소하면 null */
     pick: () => Promise<ImportParseResult | null>
     commit: (rows: ContactInput[], policy: DuplicatePolicy) => Promise<ImportSummary>
+  }
+  ocr: {
+    /** 명함 이미지 선택 → OCR → 필드 추출. 취소하면 null */
+    scanCard: () => Promise<OcrScanResult | null>
+  }
+  files: {
+    /** 앱 데이터 폴더의 명함 이미지를 미리보기용 데이터 URL로 */
+    imageDataUrl: (path: string) => Promise<string>
   }
   templates: {
     list: () => Promise<EmailTemplate[]>

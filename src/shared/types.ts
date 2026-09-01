@@ -10,6 +10,7 @@ export interface Contact {
   address: string
   website: string
   memo: string
+  card_image_path: string
   created_at: string
   updated_at: string
 }
@@ -48,6 +49,16 @@ export interface DraftResult {
   ok: boolean
   adapter?: OutlookAdapter
   error?: string
+}
+
+export interface OcrScanResult {
+  /** 추출된 필드 (확신 없는 필드는 없음) */
+  fields: Partial<ContactInput>
+  /** 앱 데이터 폴더로 복사된 명함 이미지 경로 */
+  imagePath: string
+  /** 미리보기용 데이터 URL */
+  imageDataUrl: string
+  rawText: string
 }
 
 export interface ImportParseResult {

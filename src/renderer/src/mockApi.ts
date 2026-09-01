@@ -22,6 +22,7 @@ export function installMockApiIfNeeded(): void {
       address: '서울 중구',
       website: '',
       memo: '9월 전시회에서 인사',
+      card_image_path: '',
       created_at: now,
       updated_at: now
     },
@@ -37,6 +38,7 @@ export function installMockApiIfNeeded(): void {
       address: '',
       website: 'daesung.example',
       memo: '',
+      card_image_path: '',
       created_at: now,
       updated_at: now
     },
@@ -52,6 +54,7 @@ export function installMockApiIfNeeded(): void {
       address: '',
       website: '',
       memo: '이메일 미확보',
+      card_image_path: '',
       created_at: now,
       updated_at: now
     }
@@ -125,6 +128,28 @@ export function installMockApiIfNeeded(): void {
           adapter: 'eml' as const
         })),
       history: async () => logs
+    },
+    ocr: {
+      scanCard: async () => ({
+        fields: {
+          name: '오세진',
+          company: '(주)가온누리',
+          title: '차장',
+          email: 'sj.oh@gaon.example',
+          mobile: '010-7777-8888',
+          card_image_path: '/mock/card.png'
+        },
+        imagePath: '/mock/card.png',
+        imageDataUrl:
+          'data:image/svg+xml;utf8,' +
+          encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#eef2ff"/><text x="20" y="60" font-size="24" fill="#3730a3">오세진 차장</text><text x="20" y="100" font-size="14" fill="#667085">(주)가온누리</text></svg>'
+          ),
+        rawText: '(주)가온누리\n오세진 차장\nsj.oh@gaon.example\nM. 010-7777-8888'
+      }),
+    },
+    files: {
+      imageDataUrl: async () => ''
     },
     system: {
       outlookMode: async () => 'eml',

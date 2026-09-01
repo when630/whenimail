@@ -20,7 +20,8 @@ const CONTACT_FIELDS = [
   'mobile',
   'address',
   'website',
-  'memo'
+  'memo',
+  'card_image_path'
 ] as const
 
 function normalizeContact(input: ContactInput): Record<string, string> {

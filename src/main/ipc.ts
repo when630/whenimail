@@ -1,9 +1,11 @@
 import { app, ipcMain, shell } from 'electron'
+import path from 'node:path'
 import { renderTemplate, bodyToHtml } from '../shared/render'
 import type { ContactInput, DraftResult, DuplicatePolicy, TemplateInput } from '../shared/types'
 import * as repo from './repo'
 import { detectOutlookMode, openDraft } from './outlook'
 import { pickAndParse } from './importer'
+import { imageToDataUrl, pickAndScanCard } from './ocr'
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
@@ -15,6 +17,15 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle('contacts:delete', (_e, id: number) => repo.deleteContact(id))
   ipcMain.handle('contacts:recent', (_e, limit?: number) => repo.recentContacts(limit))
+
+  ipcMain.handle('ocr:scanCard', () => pickAndScanCard())
+  ipcMain.handle('files:imageDataUrl', (_e, filePath: string) => {
+    // 렌더러가 요청할 수 있는 경로를 앱 데이터 폴더 안으로 제한
+    const cardsDir = path.join(app.getPath('userData'), 'cards')
+    const resolved = path.resolve(filePath)
+    if (!resolved.startsWith(cardsDir)) throw new Error('허용되지 않은 경로입니다')
+    return imageToDataUrl(resolved)
+  })
 
   ipcMain.handle('import:pick', () => pickAndParse())
   ipcMain.handle('import:commit', (_e, rows: ContactInput[], policy: DuplicatePolicy) =>
