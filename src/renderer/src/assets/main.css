@@ -144,6 +144,10 @@ body {
 
 /* ---------- icon rail ---------- */
 .rail {
+  /* 콘텐츠의 opacity 애니메이션이 만드는 스태킹 컨텍스트보다 항상 위에 —
+     툴팁이 뷰 전환 중 콘텐츠 뒤로 가려지지 않도록. 모달(z10)·팔레트(z30)보다는 아래 */
+  position: relative;
+  z-index: 5;
   width: 64px;
   flex-shrink: 0;
   background: linear-gradient(180deg, #181b28 0%, #12141d 100%);
