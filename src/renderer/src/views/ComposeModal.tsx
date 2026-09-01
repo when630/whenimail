@@ -15,10 +15,16 @@ import { renderTemplate } from '../../../shared/render'
 
 interface Props {
   contacts: Contact[]
+  /** 팔레트에서 미리 고른 템플릿 — 목록에 있으면 기본 선택 */
+  initialTemplateId?: number
   onClose: () => void
 }
 
-export default function ComposeModal({ contacts, onClose }: Props): React.JSX.Element {
+export default function ComposeModal({
+  contacts,
+  initialTemplateId,
+  onClose
+}: Props): React.JSX.Element {
   const [templates, setTemplates] = useState<EmailTemplate[] | null>(null)
   const [templateId, setTemplateId] = useState<number | null>(null)
   const [previewIdx, setPreviewIdx] = useState(0)
@@ -28,8 +34,10 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
   useEffect(() => {
     window.api.templates.list().then((list) => {
       setTemplates(list)
-      if (list.length > 0) setTemplateId(list[0].id)
+      const preferred = list.find((t) => t.id === initialTemplateId) ?? list[0]
+      if (preferred) setTemplateId(preferred.id)
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const targets = useMemo(() => contacts.filter((c) => c.email.trim()), [contacts])

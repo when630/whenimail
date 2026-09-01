@@ -34,7 +34,10 @@ export default function App(): React.JSX.Element {
   const [paletteOpen, setPaletteOpen] = useState(
     () => typeof window !== 'undefined' && window.location.search.includes('palette=1')
   )
-  const [paletteCompose, setPaletteCompose] = useState<Contact | null>(null)
+  const [paletteCompose, setPaletteCompose] = useState<{
+    contact: Contact
+    templateId: number
+  } | null>(null)
   const [newContactSignal, setNewContactSignal] = useState(0)
 
   useEffect(() => {
@@ -106,12 +109,16 @@ export default function App(): React.JSX.Element {
         <CommandPalette
           onClose={() => setPaletteOpen(false)}
           onNavigate={setView}
-          onCompose={(c) => setPaletteCompose(c)}
+          onCompose={(contact, templateId) => setPaletteCompose({ contact, templateId })}
           onNewContact={openNewContact}
         />
       )}
       {paletteCompose && (
-        <ComposeModal contacts={[paletteCompose]} onClose={() => setPaletteCompose(null)} />
+        <ComposeModal
+          contacts={[paletteCompose.contact]}
+          initialTemplateId={paletteCompose.templateId}
+          onClose={() => setPaletteCompose(null)}
+        />
       )}
     </div>
   )
