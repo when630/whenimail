@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ContactRound, Pencil, Plus, Search, SendHorizontal, Trash2, Upload } from 'lucide-react'
+import {
+  ContactRound,
+  Image as ImageIcon,
+  Pencil,
+  Plus,
+  Search,
+  SendHorizontal,
+  Trash2,
+  Upload
+} from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
 import Avatar from '../components/Avatar'
 import ContactForm from './ContactForm'
@@ -176,6 +185,9 @@ export default function ContactsView({
                     <span className="name-with-avatar">
                       <Avatar name={c.name} />
                       {c.name}
+                      {c.card_image_path && (
+                        <ImageIcon size={13} className="muted" aria-label="명함 이미지 있음" />
+                      )}
                     </span>
                   </td>
                   <td>

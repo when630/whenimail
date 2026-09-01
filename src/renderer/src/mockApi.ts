@@ -154,6 +154,10 @@ export function installMockApiIfNeeded(): void {
     system: {
       outlookMode: async () => 'eml',
       openDataFolder: async () => ''
+    },
+    backup: {
+      export: async () => 'C:/mock/whenimail-backup.zip',
+      import: async () => false
     }
   }
 

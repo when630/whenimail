@@ -1,4 +1,5 @@
-import { Database, FolderOpen, MailCheck } from 'lucide-react'
+import { useState } from 'react'
+import { Archive, Database, FolderOpen, Loader2, MailCheck, RotateCcw } from 'lucide-react'
 import type { OutlookAdapter } from '../../../shared/types'
 
 const MODE_DESC: Record<OutlookAdapter, string> = {
@@ -12,6 +13,37 @@ export default function SettingsView({
 }: {
   outlookMode: OutlookAdapter | null
 }): React.JSX.Element {
+  const [busy, setBusy] = useState<'export' | 'import' | null>(null)
+
+  const exportBackup = async (): Promise<void> => {
+    setBusy('export')
+    try {
+      const saved = await window.api.backup.export()
+      if (saved) alert(`백업이 저장되었습니다:\n${saved}`)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const importBackup = async (): Promise<void> => {
+    if (
+      !confirm(
+        '복원하면 현재 명함·템플릿·이력이 백업 파일 내용으로 교체되고 앱이 다시 시작됩니다.\n계속할까요?'
+      )
+    )
+      return
+    setBusy('import')
+    try {
+      await window.api.backup.import()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
     <div className="view">
       <header className="view-header">
@@ -39,11 +71,23 @@ export default function SettingsView({
           <Database size={16} />
           데이터
         </h2>
-        <p className="muted">명함·템플릿·이력은 이 PC의 로컬 SQLite 파일에만 저장됩니다.</p>
-        <button className="btn" onClick={() => window.api.system.openDataFolder()}>
-          <FolderOpen size={15} />
-          데이터 폴더 열기
-        </button>
+        <p className="muted">
+          명함·템플릿·이력·명함 이미지는 이 PC의 로컬 데이터 폴더에만 저장됩니다.
+        </p>
+        <div className="settings-actions">
+          <button className="btn" onClick={() => window.api.system.openDataFolder()}>
+            <FolderOpen size={15} />
+            데이터 폴더 열기
+          </button>
+          <button className="btn" onClick={exportBackup} disabled={busy !== null}>
+            {busy === 'export' ? <Loader2 size={15} className="spin" /> : <Archive size={15} />}
+            백업 내보내기 (zip)
+          </button>
+          <button className="btn" onClick={importBackup} disabled={busy !== null}>
+            {busy === 'import' ? <Loader2 size={15} className="spin" /> : <RotateCcw size={15} />}
+            백업에서 복원…
+          </button>
+        </div>
       </section>
     </div>
   )

@@ -48,4 +48,10 @@ export interface WhenimailApi {
     outlookMode: () => Promise<OutlookAdapter>
     openDataFolder: () => Promise<string>
   }
+  backup: {
+    /** zip으로 내보내기. 취소 시 null, 성공 시 저장 경로 */
+    export: () => Promise<string | null>
+    /** zip에서 복원. 성공하면 앱이 재시작된다. 취소 시 false */
+    import: () => Promise<boolean>
+  }
 }

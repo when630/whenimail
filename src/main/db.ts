@@ -5,6 +5,14 @@ import Database from 'better-sqlite3'
 
 let db: Database.Database | null = null
 
+/** 백업 복원 등 파일 교체 전에 DB 연결을 닫는다 */
+export function closeDb(): void {
+  if (db) {
+    db.close()
+    db = null
+  }
+}
+
 export function getDb(): Database.Database {
   if (db) return db
   const dir = app.getPath('userData')

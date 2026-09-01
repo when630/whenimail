@@ -6,6 +6,7 @@ import * as repo from './repo'
 import { detectOutlookMode, openDraft } from './outlook'
 import { pickAndParse } from './importer'
 import { imageToDataUrl, pickAndScanCard } from './ocr'
+import { exportBackup, importBackup } from './backup'
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
@@ -97,4 +98,6 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('system:outlookMode', () => detectOutlookMode())
   ipcMain.handle('system:openDataFolder', () => shell.openPath(app.getPath('userData')))
+  ipcMain.handle('backup:export', () => exportBackup())
+  ipcMain.handle('backup:import', () => importBackup())
 }

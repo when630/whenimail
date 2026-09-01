@@ -52,6 +52,10 @@ const api: WhenimailApi = {
   system: {
     outlookMode: (): Promise<OutlookAdapter> => ipcRenderer.invoke('system:outlookMode'),
     openDataFolder: (): Promise<string> => ipcRenderer.invoke('system:openDataFolder')
+  },
+  backup: {
+    export: (): Promise<string | null> => ipcRenderer.invoke('backup:export'),
+    import: (): Promise<boolean> => ipcRenderer.invoke('backup:import')
   }
 }
 

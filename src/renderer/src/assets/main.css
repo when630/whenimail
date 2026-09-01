@@ -1311,3 +1311,9 @@ kbd {
 .settings-section p {
   margin: 0 0 10px;
 }
+
+.settings-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
