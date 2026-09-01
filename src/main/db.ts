@@ -74,4 +74,17 @@ function migrate(db: Database.Database): void {
   if (!contactCols.some((c) => c.name === 'card_image_path')) {
     db.exec(`ALTER TABLE contact ADD COLUMN card_image_path TEXT NOT NULL DEFAULT ''`)
   }
+
+  // v3: 태그
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tag (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE
+    );
+    CREATE TABLE IF NOT EXISTS contact_tag (
+      contact_id INTEGER NOT NULL REFERENCES contact(id) ON DELETE CASCADE,
+      tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+      PRIMARY KEY (contact_id, tag_id)
+    );
+  `)
 }

@@ -9,7 +9,7 @@ import {
   Trash2,
   Upload
 } from 'lucide-react'
-import type { Contact, ContactInput } from '../../../shared/types'
+import type { Contact, ContactInput, TagCount } from '../../../shared/types'
 import Avatar from '../components/Avatar'
 import { useDialog } from '../components/dialogs'
 import ContactForm from './ContactForm'
@@ -25,27 +25,34 @@ export default function ContactsView({
 }): React.JSX.Element {
   const [contacts, setContacts] = useState<Contact[] | null>(null)
   const [search, setSearch] = useState('')
+  const [allTags, setAllTags] = useState<TagCount[]>([])
+  const [activeTag, setActiveTag] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [editing, setEditing] = useState<Contact | 'new' | null>(null)
   const [composeTargets, setComposeTargets] = useState<Contact[] | null>(null)
   const [importing, setImporting] = useState(false)
   const { confirm, toast } = useDialog()
 
-  const reload = useCallback(async (q?: string) => {
-    setContacts(await window.api.contacts.list(q))
+  const reload = useCallback(async (q?: string, tag?: string | null) => {
+    const [list, tags] = await Promise.all([
+      window.api.contacts.list(q, tag ?? undefined),
+      window.api.tags.list()
+    ])
+    setContacts(list)
+    setAllTags(tags)
   }, [])
 
   const firstLoad = useRef(true)
   useEffect(() => {
-    // 첫 로드는 즉시, 검색 입력은 디바운스
+    // 첫 로드·태그 전환은 즉시, 검색 입력은 디바운스
     if (firstLoad.current) {
       firstLoad.current = false
-      reload(search)
+      reload(search, activeTag)
       return
     }
-    const t = setTimeout(() => reload(search), 150)
+    const t = setTimeout(() => reload(search, activeTag), 150)
     return () => clearTimeout(t)
-  }, [search, reload])
+  }, [search, activeTag, reload])
 
   useEffect(() => {
     if (newContactSignal > 0) setEditing('new')
@@ -69,7 +76,7 @@ export default function ContactsView({
     if (isNew) await window.api.contacts.create(input)
     else if (editing) await window.api.contacts.update(editing.id, input)
     setEditing(null)
-    await reload(search)
+    await reload(search, activeTag)
     toast(isNew ? '명함이 등록되었습니다' : '저장되었습니다')
   }
 
@@ -87,7 +94,7 @@ export default function ContactsView({
       next.delete(contact.id)
       return next
     })
-    await reload(search)
+    await reload(search, activeTag)
     toast('삭제되었습니다')
   }
 
@@ -139,6 +146,26 @@ export default function ContactsView({
         </div>
       </header>
 
+      {allTags.length > 0 && (
+        <div className="tag-filter">
+          <button
+            className={`chip ${activeTag === null ? 'chip-active' : ''}`}
+            onClick={() => setActiveTag(null)}
+          >
+            전체
+          </button>
+          {allTags.map((t) => (
+            <button
+              key={t.name}
+              className={`chip ${activeTag === t.name ? 'chip-active' : ''}`}
+              onClick={() => setActiveTag(activeTag === t.name ? null : t.name)}
+            >
+              {t.name} <span className="chip-count">{t.count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {contacts === null ? null : list.length === 0 ? (
         <div className="empty">
           <ContactRound size={36} strokeWidth={1.4} />
@@ -174,6 +201,7 @@ export default function ContactsView({
                 <th>회사 / 부서</th>
                 <th>직함</th>
                 <th>이메일</th>
+                <th>태그</th>
                 <th className="col-actions"></th>
               </tr>
             </thead>
@@ -207,6 +235,16 @@ export default function ContactsView({
                   </td>
                   <td>{c.title}</td>
                   <td>{c.email || <span className="badge warn">이메일 없음</span>}</td>
+                  <td className="cell-tags">
+                    {c.tags.slice(0, 3).map((t) => (
+                      <span key={t} className="badge neutral">
+                        {t}
+                      </span>
+                    ))}
+                    {c.tags.length > 3 && (
+                      <span className="muted">+{c.tags.length - 3}</span>
+                    )}
+                  </td>
                   <td className="col-actions">
                     <button
                       className="btn ghost sm"
@@ -252,7 +290,7 @@ export default function ContactsView({
         <ImportModal
           onClose={(imported) => {
             setImporting(false)
-            if (imported) reload(search)
+            if (imported) reload(search, activeTag)
           }}
         />
       )}

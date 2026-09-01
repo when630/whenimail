@@ -14,10 +14,13 @@ const EMPTY: ContactInput = {
   address: '',
   website: '',
   memo: '',
-  card_image_path: ''
+  card_image_path: '',
+  tags: []
 }
 
-const FIELDS: { key: keyof ContactInput; label: string; required?: boolean }[] = [
+type StringField = Exclude<keyof ContactInput, 'tags'>
+
+const FIELDS: { key: StringField; label: string; required?: boolean }[] = [
   { key: 'name', label: '이름', required: true },
   { key: 'company', label: '회사' },
   { key: 'department', label: '부서' },
@@ -49,10 +52,12 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
           address: contact.address,
           website: contact.website,
           memo: contact.memo,
-          card_image_path: contact.card_image_path
+          card_image_path: contact.card_image_path,
+          tags: contact.tags
         }
       : EMPTY
   )
+  const [tagsText, setTagsText] = useState(contact ? contact.tags.join(', ') : '')
   const [saving, setSaving] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [cardPreview, setCardPreview] = useState<string | null>(null)
@@ -67,7 +72,7 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
     }
   }, [contact])
 
-  const set = (key: keyof ContactInput, value: string): void =>
+  const set = (key: StringField, value: string): void =>
     setForm((f) => ({ ...f, [key]: value }))
 
   const scan = async (): Promise<void> => {
@@ -78,11 +83,10 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
       // 사용자가 이미 입력한 값은 유지하고 빈 필드만 채운다
       setForm((f) => {
         const next = { ...f }
-        for (const [key, value] of Object.entries(result.fields) as [
-          keyof ContactInput,
-          string
-        ][]) {
-          if (!next[key]?.trim() && value) next[key] = value
+        for (const [key, value] of Object.entries(result.fields)) {
+          if (key === 'tags' || typeof value !== 'string' || !value) continue
+          const k = key as StringField
+          if (!next[k]?.trim()) next[k] = value
         }
         next.card_image_path = result.imagePath
         return next
@@ -101,7 +105,8 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      await onSave(form)
+      const tags = [...new Set(tagsText.split(',').map((t) => t.trim()).filter(Boolean))]
+      await onSave({ ...form, tags })
     } finally {
       setSaving(false)
     }
@@ -150,6 +155,14 @@ export default function ContactForm({ contact, onSave, onClose }: Props): React.
                 />
               </label>
             ))}
+            <label className="form-field">
+              <span>태그 (쉼표로 구분)</span>
+              <input
+                value={tagsText}
+                placeholder="예: 전시회, VIP"
+                onChange={(e) => setTagsText(e.target.value)}
+              />
+            </label>
             <label className="form-field form-field-wide">
               <span>메모</span>
               <textarea rows={3} value={form.memo} onChange={(e) => set('memo', e.target.value)} />

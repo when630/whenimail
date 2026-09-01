@@ -11,11 +11,17 @@ export interface Contact {
   website: string
   memo: string
   card_image_path: string
+  tags: string[]
   created_at: string
   updated_at: string
 }
 
 export type ContactInput = Omit<Contact, 'id' | 'created_at' | 'updated_at'>
+
+export interface TagCount {
+  name: string
+  count: number
+}
 
 export interface EmailTemplate {
   id: number

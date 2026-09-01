@@ -11,14 +11,19 @@ import type {
   ImportSummary,
   OcrScanResult,
   OutlookAdapter,
+  TagCount,
   TemplateInput,
   UpdateState
 } from '../shared/types'
 import type { WhenimailApi } from '../shared/api'
 
 const api: WhenimailApi = {
+  tags: {
+    list: (): Promise<TagCount[]> => ipcRenderer.invoke('tags:list')
+  },
   contacts: {
-    list: (search?: string): Promise<Contact[]> => ipcRenderer.invoke('contacts:list', search),
+    list: (search?: string, tag?: string): Promise<Contact[]> =>
+      ipcRenderer.invoke('contacts:list', search, tag),
     recent: (limit?: number): Promise<Contact[]> => ipcRenderer.invoke('contacts:recent', limit),
     create: (input: ContactInput): Promise<Contact> => ipcRenderer.invoke('contacts:create', input),
     update: (id: number, input: ContactInput): Promise<Contact> =>

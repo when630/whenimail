@@ -15,6 +15,7 @@ const contact: Contact = {
   website: 'hanbit.example',
   memo: '',
   card_image_path: '',
+  tags: [],
   created_at: '',
   updated_at: ''
 }

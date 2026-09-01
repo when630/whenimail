@@ -626,6 +626,42 @@ input[type='checkbox'] {
   transform: translateY(-1px);
 }
 
+.chip-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.chip-active:hover {
+  background: var(--primary-hover);
+  color: #fff;
+}
+
+.chip-count {
+  opacity: 0.65;
+  font-size: 11px;
+}
+
+.tag-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -6px 0 14px;
+}
+
+.tag-filter .chip {
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 4px 12px;
+}
+
+.cell-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
 .spin {
   animation: spin 0.9s linear infinite;
 }

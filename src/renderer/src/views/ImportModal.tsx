@@ -8,7 +8,9 @@ import type {
 } from '../../../shared/types'
 import { useDialog } from '../components/dialogs'
 
-const FIELDS: { key: keyof ContactInput; label: string; aliases: string[] }[] = [
+type StringField = Exclude<keyof ContactInput, 'tags'>
+
+const FIELDS: { key: StringField; label: string; aliases: string[] }[] = [
   { key: 'name', label: '이름', aliases: ['이름', '성명', 'name', '담당자'] },
   { key: 'company', label: '회사', aliases: ['회사', '회사명', 'company', '거래처', '업체'] },
   { key: 'department', label: '부서', aliases: ['부서', 'department', '팀'] },
@@ -26,8 +28,8 @@ const FIELDS: { key: keyof ContactInput; label: string; aliases: string[] }[] = 
 ]
 
 /** 헤더명으로 필드 자동 매핑 */
-function guessMapping(headers: string[]): Record<keyof ContactInput, number> {
-  const mapping = {} as Record<keyof ContactInput, number>
+function guessMapping(headers: string[]): Record<StringField, number> {
+  const mapping = {} as Record<StringField, number>
   const used = new Set<number>()
   for (const field of FIELDS) {
     mapping[field.key] = -1
@@ -50,7 +52,7 @@ interface Props {
 
 export default function ImportModal({ onClose }: Props): React.JSX.Element {
   const [parsed, setParsed] = useState<ImportParseResult | null>(null)
-  const [mapping, setMapping] = useState<Record<keyof ContactInput, number> | null>(null)
+  const [mapping, setMapping] = useState<Record<StringField, number> | null>(null)
   const [policy, setPolicy] = useState<DuplicatePolicy>('skip')
   const [busy, setBusy] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
@@ -74,7 +76,7 @@ export default function ImportModal({ onClose }: Props): React.JSX.Element {
   const mappedRows = useMemo<ContactInput[]>(() => {
     if (!parsed || !mapping) return []
     return parsed.rows.map((row) => {
-      const input = {} as ContactInput
+      const input = { tags: [] } as unknown as ContactInput
       for (const field of FIELDS) {
         const col = mapping[field.key]
         input[field.key] = col >= 0 ? (row[col] ?? '') : ''

@@ -23,6 +23,7 @@ export function installMockApiIfNeeded(): void {
       website: '',
       memo: '9월 전시회에서 인사',
       card_image_path: '',
+      tags: ['전시회', 'VIP'],
       created_at: now,
       updated_at: now
     },
@@ -39,6 +40,7 @@ export function installMockApiIfNeeded(): void {
       website: 'daesung.example',
       memo: '',
       card_image_path: '',
+      tags: ['협력사'],
       created_at: now,
       updated_at: now
     },
@@ -55,6 +57,7 @@ export function installMockApiIfNeeded(): void {
       website: '',
       memo: '이메일 미확보',
       card_image_path: '',
+      tags: [],
       created_at: now,
       updated_at: now
     }
@@ -86,11 +89,21 @@ export function installMockApiIfNeeded(): void {
   ]
 
   const api: WhenimailApi = {
+    tags: {
+      list: async () => [
+        { name: '전시회', count: 1 },
+        { name: 'VIP', count: 1 },
+        { name: '협력사', count: 1 }
+      ]
+    },
     contacts: {
-      list: async (search?: string) =>
-        search?.trim()
-          ? contacts.filter((c) => [c.name, c.company, c.email].some((v) => v.includes(search)))
-          : contacts,
+      list: async (search?: string, tag?: string) => {
+        let list = contacts
+        if (tag) list = list.filter((c) => c.tags.includes(tag))
+        if (search?.trim())
+          list = list.filter((c) => [c.name, c.company, c.email].some((v) => v.includes(search)))
+        return list
+      },
       recent: async (limit = 5) => contacts.slice(0, limit),
       create: async (input) => ({ ...contacts[0], ...input, id: Date.now() }),
       update: async (id, input) => ({ ...contacts[0], ...input, id }),

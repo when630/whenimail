@@ -9,6 +9,7 @@ import type {
   ImportSummary,
   OcrScanResult,
   OutlookAdapter,
+  TagCount,
   TemplateInput,
   UpdateState
 } from './types'
@@ -16,11 +17,14 @@ import type {
 /** preload가 렌더러에 노출하는 window.api 계약 */
 export interface WhenimailApi {
   contacts: {
-    list: (search?: string) => Promise<Contact[]>
+    list: (search?: string, tag?: string) => Promise<Contact[]>
     recent: (limit?: number) => Promise<Contact[]>
     create: (input: ContactInput) => Promise<Contact>
     update: (id: number, input: ContactInput) => Promise<Contact>
     remove: (id: number) => Promise<void>
+  }
+  tags: {
+    list: () => Promise<TagCount[]>
   }
   import: {
     /** 파일 선택 대화상자 → 파싱. 취소하면 null */

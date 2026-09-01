@@ -11,7 +11,10 @@ import { exportBackup, importBackup } from './backup'
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
 export function registerIpcHandlers(): void {
-  ipcMain.handle('contacts:list', (_e, search?: string) => repo.listContacts(search))
+  ipcMain.handle('contacts:list', (_e, search?: string, tag?: string) =>
+    repo.listContacts(search, tag)
+  )
+  ipcMain.handle('tags:list', () => repo.listTags())
   ipcMain.handle('contacts:create', (_e, input: ContactInput) => repo.createContact(input))
   ipcMain.handle('contacts:update', (_e, id: number, input: ContactInput) =>
     repo.updateContact(id, input)
