@@ -152,8 +152,15 @@ export function installMockApiIfNeeded(): void {
       imageDataUrl: async () => ''
     },
     system: {
+      version: async () => '0.0.0-dev',
       outlookMode: async () => 'eml',
       openDataFolder: async () => ''
+    },
+    update: {
+      state: async () => ({ status: 'ready', version: '9.9.9' }),
+      check: async () => ({ status: 'ready', version: '9.9.9' }),
+      install: async () => undefined,
+      onState: () => () => undefined
     },
     backup: {
       export: async () => 'C:/mock/whenimail-backup.zip',

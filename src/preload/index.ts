@@ -11,7 +11,8 @@ import type {
   ImportSummary,
   OcrScanResult,
   OutlookAdapter,
-  TemplateInput
+  TemplateInput,
+  UpdateState
 } from '../shared/types'
 import type { WhenimailApi } from '../shared/api'
 
@@ -50,8 +51,19 @@ const api: WhenimailApi = {
     history: (): Promise<DraftLog[]> => ipcRenderer.invoke('drafts:history')
   },
   system: {
+    version: (): Promise<string> => ipcRenderer.invoke('system:version'),
     outlookMode: (): Promise<OutlookAdapter> => ipcRenderer.invoke('system:outlookMode'),
     openDataFolder: (): Promise<string> => ipcRenderer.invoke('system:openDataFolder')
+  },
+  update: {
+    state: (): Promise<UpdateState> => ipcRenderer.invoke('update:state'),
+    check: (): Promise<UpdateState> => ipcRenderer.invoke('update:check'),
+    install: (): Promise<void> => ipcRenderer.invoke('update:install'),
+    onState: (cb: (state: UpdateState) => void): (() => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, state: UpdateState): void => cb(state)
+      ipcRenderer.on('update:state', listener)
+      return () => ipcRenderer.removeListener('update:state', listener)
+    }
   },
   backup: {
     export: (): Promise<string | null> => ipcRenderer.invoke('backup:export'),

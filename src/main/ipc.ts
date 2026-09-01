@@ -96,6 +96,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('drafts:history', () => repo.listDraftLogs())
 
+  ipcMain.handle('system:version', () => app.getVersion())
   ipcMain.handle('system:outlookMode', () => detectOutlookMode())
   ipcMain.handle('system:openDataFolder', () => shell.openPath(app.getPath('userData')))
   ipcMain.handle('backup:export', () => exportBackup())

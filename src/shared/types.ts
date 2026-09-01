@@ -51,6 +51,15 @@ export interface DraftResult {
   error?: string
 }
 
+export interface UpdateState {
+  status: 'idle' | 'checking' | 'available' | 'none' | 'downloading' | 'ready' | 'error'
+  /** 새 버전 (available/downloading/ready) */
+  version?: string
+  /** 다운로드 진행률 0~100 */
+  percent?: number
+  message?: string
+}
+
 export interface OcrScanResult {
   /** 추출된 필드 (확신 없는 필드는 없음) */
   fields: Partial<ContactInput>

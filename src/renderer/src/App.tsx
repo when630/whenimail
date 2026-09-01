@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Contact as ContactIcon, History, Mail, Search, Send, Settings } from 'lucide-react'
 import type { Contact, OutlookAdapter } from '../../shared/types'
+import { useDialog } from './components/dialogs'
 import CommandPalette, { type ViewKey } from './components/CommandPalette'
 import ComposeModal from './views/ComposeModal'
 import ContactsView from './views/ContactsView'
@@ -41,9 +42,21 @@ export default function App(): React.JSX.Element {
   const [newContactSignal, setNewContactSignal] = useState(0)
   const [importSignal, setImportSignal] = useState(0)
 
+  const { toast } = useDialog()
+  const updateNotifiedRef = useRef<string | null>(null)
+
   useEffect(() => {
     window.api.system.outlookMode().then(setOutlookMode)
   }, [])
+
+  useEffect(() => {
+    return window.api.update.onState((s) => {
+      if (s.status === 'ready' && s.version && updateNotifiedRef.current !== s.version) {
+        updateNotifiedRef.current = s.version
+        toast(`새 버전 v${s.version} 다운로드 완료 — 설정에서 재시작하면 적용됩니다`, 'info')
+      }
+    })
+  }, [toast])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {

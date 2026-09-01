@@ -1,7 +1,26 @@
-import { useState } from 'react'
-import { Archive, Database, FolderOpen, Loader2, MailCheck, RotateCcw } from 'lucide-react'
-import type { OutlookAdapter } from '../../../shared/types'
+import { useEffect, useState } from 'react'
+import {
+  Archive,
+  Database,
+  DownloadCloud,
+  FolderOpen,
+  Loader2,
+  MailCheck,
+  RefreshCw,
+  RotateCcw
+} from 'lucide-react'
+import type { OutlookAdapter, UpdateState } from '../../../shared/types'
 import { useDialog } from '../components/dialogs'
+
+const UPDATE_LABEL: Record<UpdateState['status'], string> = {
+  idle: '확인 전',
+  checking: '확인 중…',
+  available: '새 버전 발견',
+  none: '최신 버전입니다',
+  downloading: '다운로드 중',
+  ready: '업데이트 준비 완료 — 재시작하면 적용됩니다',
+  error: '확인 실패'
+}
 
 const MODE_DESC: Record<OutlookAdapter, string> = {
   com: '클래식 Outlook이 설치되어 있어 COM 자동화로 초안을 엽니다. HTML 본문이 완전하게 지원됩니다.',
@@ -15,7 +34,15 @@ export default function SettingsView({
   outlookMode: OutlookAdapter | null
 }): React.JSX.Element {
   const [busy, setBusy] = useState<'export' | 'import' | null>(null)
+  const [version, setVersion] = useState('')
+  const [update, setUpdate] = useState<UpdateState>({ status: 'idle' })
   const { confirm, toast } = useDialog()
+
+  useEffect(() => {
+    window.api.system.version().then(setVersion)
+    window.api.update.state().then(setUpdate)
+    return window.api.update.onState(setUpdate)
+  }, [])
 
   const exportBackup = async (): Promise<void> => {
     setBusy('export')
@@ -69,6 +96,42 @@ export default function SettingsView({
           whenimail은 메일을 자동 전송하지 않습니다. 항상 Outlook 초안을 열어 확인 후 직접
           전송합니다.
         </p>
+      </section>
+      <section className="settings-section">
+        <h2>
+          <DownloadCloud size={16} />
+          업데이트
+        </h2>
+        <p>
+          현재 버전: <span className="badge neutral">v{version || '…'}</span>{' '}
+          <span className="muted">
+            {UPDATE_LABEL[update.status]}
+            {update.status === 'downloading' && update.percent !== undefined
+              ? ` (${update.percent}%)`
+              : ''}
+            {update.status === 'error' && update.message ? ` — ${update.message}` : ''}
+          </span>
+        </p>
+        <p className="muted">새 버전이 GitHub 릴리즈에 올라오면 자동으로 내려받아 둡니다.</p>
+        <div className="settings-actions">
+          <button
+            className="btn"
+            onClick={() => window.api.update.check()}
+            disabled={update.status === 'checking' || update.status === 'downloading'}
+          >
+            {update.status === 'checking' || update.status === 'downloading' ? (
+              <Loader2 size={15} className="spin" />
+            ) : (
+              <RefreshCw size={15} />
+            )}
+            업데이트 확인
+          </button>
+          {update.status === 'ready' && (
+            <button className="btn primary" onClick={() => window.api.update.install()}>
+              지금 재시작하여 v{update.version} 적용
+            </button>
+          )}
+        </div>
       </section>
       <section className="settings-section">
         <h2>

@@ -9,7 +9,8 @@ import type {
   ImportSummary,
   OcrScanResult,
   OutlookAdapter,
-  TemplateInput
+  TemplateInput,
+  UpdateState
 } from './types'
 
 /** preload가 렌더러에 노출하는 window.api 계약 */
@@ -45,8 +46,19 @@ export interface WhenimailApi {
     history: () => Promise<DraftLog[]>
   }
   system: {
+    version: () => Promise<string>
     outlookMode: () => Promise<OutlookAdapter>
     openDataFolder: () => Promise<string>
+  }
+  update: {
+    /** 현재 업데이트 상태 조회 */
+    state: () => Promise<UpdateState>
+    /** 수동 업데이트 확인 트리거 */
+    check: () => Promise<UpdateState>
+    /** 다운로드된 업데이트 설치(앱 재시작) */
+    install: () => Promise<void>
+    /** 상태 변화 구독. 반환값은 구독 해제 함수 */
+    onState: (cb: (state: UpdateState) => void) => () => void
   }
   backup: {
     /** zip으로 내보내기. 취소 시 null, 성공 시 저장 경로 */
