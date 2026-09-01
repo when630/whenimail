@@ -8,7 +8,8 @@ import {
   Plus,
   Search,
   SendHorizontal,
-  Settings
+  Settings,
+  Upload
 } from 'lucide-react'
 import type { Contact, EmailTemplate } from '../../../shared/types'
 import Avatar from './Avatar'
@@ -20,6 +21,7 @@ interface Props {
   onNavigate: (view: ViewKey) => void
   onCompose: (contact: Contact, templateId: number) => void
   onNewContact: () => void
+  onImport: () => void
 }
 
 interface ActionItem {
@@ -49,7 +51,8 @@ export default function CommandPalette({
   onClose,
   onNavigate,
   onCompose,
-  onNewContact
+  onNewContact,
+  onImport
 }: Props): React.JSX.Element {
   const [query, setQuery] = useState('')
   const [contacts, setContacts] = useState<Contact[]>([])
@@ -68,7 +71,10 @@ export default function CommandPalette({
   useEffect(() => {
     if (step !== 'root') return
     const t = setTimeout(async () => {
-      setContacts(await window.api.contacts.list(query))
+      // 검색어가 없으면 최근 사용 명함을 기본으로 보여준다
+      setContacts(
+        query.trim() ? await window.api.contacts.list(query) : await window.api.contacts.recent(5)
+      )
     }, 80)
     return () => clearTimeout(t)
   }, [query, step])
@@ -89,6 +95,14 @@ export default function CommandPalette({
         hint: '새 명함을 추가합니다',
         Icon: Plus,
         run: onNewContact
+      },
+      {
+        kind: 'action',
+        id: 'import',
+        label: 'CSV/엑셀 가져오기',
+        hint: '연락처 파일 일괄 등록',
+        Icon: Upload,
+        run: onImport
       },
       {
         kind: 'action',
@@ -243,7 +257,7 @@ export default function CommandPalette({
         </div>
         <div className="palette-list" ref={listRef}>
           {step === 'root' && contactItems.length > 0 && (
-            <div className="palette-group">명함</div>
+            <div className="palette-group">{query.trim() ? '명함' : '최근 명함'}</div>
           )}
           {contactItems.map((item) => {
             idx += 1

@@ -5,7 +5,10 @@ import type {
   ContactInput,
   DraftLog,
   DraftResult,
+  DuplicatePolicy,
   EmailTemplate,
+  ImportParseResult,
+  ImportSummary,
   OutlookAdapter,
   TemplateInput
 } from '../shared/types'
@@ -14,10 +17,16 @@ import type { WhenimailApi } from '../shared/api'
 const api: WhenimailApi = {
   contacts: {
     list: (search?: string): Promise<Contact[]> => ipcRenderer.invoke('contacts:list', search),
+    recent: (limit?: number): Promise<Contact[]> => ipcRenderer.invoke('contacts:recent', limit),
     create: (input: ContactInput): Promise<Contact> => ipcRenderer.invoke('contacts:create', input),
     update: (id: number, input: ContactInput): Promise<Contact> =>
       ipcRenderer.invoke('contacts:update', id, input),
     remove: (id: number): Promise<void> => ipcRenderer.invoke('contacts:delete', id)
+  },
+  import: {
+    pick: (): Promise<ImportParseResult | null> => ipcRenderer.invoke('import:pick'),
+    commit: (rows: ContactInput[], policy: DuplicatePolicy): Promise<ImportSummary> =>
+      ipcRenderer.invoke('import:commit', rows, policy)
   },
   templates: {
     list: (): Promise<EmailTemplate[]> => ipcRenderer.invoke('templates:list'),

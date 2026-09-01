@@ -3,7 +3,9 @@ import type {
   Contact,
   ContactInput,
   DraftLog,
+  DuplicatePolicy,
   EmailTemplate,
+  ImportSummary,
   OutlookAdapter,
   TemplateInput
 } from '../shared/types'
@@ -72,6 +74,52 @@ export function updateContact(id: number, input: ContactInput): Contact {
 
 export function deleteContact(id: number): void {
   getDb().prepare('DELETE FROM contact WHERE id = ?').run(id)
+}
+
+/** 최근 초안을 보낸 명함 우선, 그다음 최근 수정 명함 */
+export function recentContacts(limit = 5): Contact[] {
+  return getDb()
+    .prepare(
+      `SELECT c.*, MAX(d.created_at) AS last_drafted
+       FROM contact c LEFT JOIN draft_log d ON d.contact_id = c.id
+       GROUP BY c.id
+       ORDER BY (last_drafted IS NULL), last_drafted DESC, c.updated_at DESC
+       LIMIT ?`
+    )
+    .all(limit) as Contact[]
+}
+
+/** 일괄 가져오기 — email 기준 중복 판정. 트랜잭션으로 처리 */
+export function importContacts(rows: ContactInput[], policy: DuplicatePolicy): ImportSummary {
+  const db = getDb()
+  const summary: ImportSummary = { inserted: 0, updated: 0, skipped: 0, invalid: 0 }
+  const findByEmail = db.prepare('SELECT id FROM contact WHERE email = ? LIMIT 1')
+
+  const run = db.transaction((items: ContactInput[]) => {
+    for (const item of items) {
+      const row = normalizeContact(item)
+      if (!row.name) {
+        summary.invalid += 1
+        continue
+      }
+      const existing = row.email
+        ? (findByEmail.get(row.email) as { id: number } | undefined)
+        : undefined
+      if (existing) {
+        if (policy === 'overwrite') {
+          updateContact(existing.id, item)
+          summary.updated += 1
+        } else {
+          summary.skipped += 1
+        }
+        continue
+      }
+      createContact(item)
+      summary.inserted += 1
+    }
+  })
+  run(rows)
+  return summary
 }
 
 export function listTemplates(): EmailTemplate[] {

@@ -39,6 +39,7 @@ export default function App(): React.JSX.Element {
     templateId: number
   } | null>(null)
   const [newContactSignal, setNewContactSignal] = useState(0)
+  const [importSignal, setImportSignal] = useState(0)
 
   useEffect(() => {
     window.api.system.outlookMode().then(setOutlookMode)
@@ -58,6 +59,11 @@ export default function App(): React.JSX.Element {
   const openNewContact = useCallback(() => {
     setView('contacts')
     setNewContactSignal((n) => n + 1)
+  }, [])
+
+  const openImport = useCallback(() => {
+    setView('contacts')
+    setImportSignal((n) => n + 1)
   }, [])
 
   return (
@@ -98,7 +104,9 @@ export default function App(): React.JSX.Element {
       </aside>
       <main className="content">
         <div className="view-enter" key={view}>
-          {view === 'contacts' && <ContactsView newContactSignal={newContactSignal} />}
+          {view === 'contacts' && (
+            <ContactsView newContactSignal={newContactSignal} importSignal={importSignal} />
+          )}
           {view === 'templates' && <TemplatesView />}
           {view === 'history' && <HistoryView />}
           {view === 'settings' && <SettingsView outlookMode={outlookMode} />}
@@ -111,6 +119,7 @@ export default function App(): React.JSX.Element {
           onNavigate={setView}
           onCompose={(contact, templateId) => setPaletteCompose({ contact, templateId })}
           onNewContact={openNewContact}
+          onImport={openImport}
         />
       )}
       {paletteCompose && (

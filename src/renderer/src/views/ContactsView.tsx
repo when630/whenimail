@@ -1,20 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ContactRound, Pencil, Plus, Search, SendHorizontal, Trash2 } from 'lucide-react'
+import { ContactRound, Pencil, Plus, Search, SendHorizontal, Trash2, Upload } from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
 import Avatar from '../components/Avatar'
 import ContactForm from './ContactForm'
 import ComposeModal from './ComposeModal'
+import ImportModal from './ImportModal'
 
 export default function ContactsView({
-  newContactSignal = 0
+  newContactSignal = 0,
+  importSignal = 0
 }: {
   newContactSignal?: number
+  importSignal?: number
 }): React.JSX.Element {
   const [contacts, setContacts] = useState<Contact[] | null>(null)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [editing, setEditing] = useState<Contact | 'new' | null>(null)
   const [composeTargets, setComposeTargets] = useState<Contact[] | null>(null)
+  const [importing, setImporting] = useState(false)
 
   const reload = useCallback(async (q?: string) => {
     setContacts(await window.api.contacts.list(q))
@@ -35,6 +39,10 @@ export default function ContactsView({
   useEffect(() => {
     if (newContactSignal > 0) setEditing('new')
   }, [newContactSignal])
+
+  useEffect(() => {
+    if (importSignal > 0) setImporting(true)
+  }, [importSignal])
 
   const toggle = (id: number): void => {
     setSelected((prev) => {
@@ -99,6 +107,14 @@ export default function ContactsView({
           <button className="btn" onClick={() => setEditing('new')}>
             <Plus size={15} />
             명함 등록
+          </button>
+          <button
+            className="btn"
+            onClick={() => setImporting(true)}
+            title="CSV/엑셀 가져오기"
+            aria-label="CSV/엑셀 가져오기"
+          >
+            <Upload size={15} />
           </button>
         </div>
       </header>
@@ -208,6 +224,14 @@ export default function ContactsView({
       )}
       {composeTargets && (
         <ComposeModal contacts={composeTargets} onClose={() => setComposeTargets(null)} />
+      )}
+      {importing && (
+        <ImportModal
+          onClose={(imported) => {
+            setImporting(false)
+            if (imported) reload(search)
+          }}
+        />
       )}
     </div>
   )

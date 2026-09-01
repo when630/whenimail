@@ -88,9 +88,27 @@ export function installMockApiIfNeeded(): void {
         search?.trim()
           ? contacts.filter((c) => [c.name, c.company, c.email].some((v) => v.includes(search)))
           : contacts,
+      recent: async (limit = 5) => contacts.slice(0, limit),
       create: async (input) => ({ ...contacts[0], ...input, id: Date.now() }),
       update: async (id, input) => ({ ...contacts[0], ...input, id }),
       remove: async () => undefined
+    },
+    import: {
+      pick: async () => ({
+        fileName: '거래처_연락처.xlsx',
+        headers: ['성명', '회사명', '직책', 'E-mail', '핸드폰', '비고'],
+        rows: [
+          ['최민수', '동방상사', '부장', 'ms.choi@dongbang.example', '010-2222-3333', '전시회'],
+          ['정유진', '누리소프트', '이사', 'yj.jung@nuri.example', '010-4444-5555', ''],
+          ['김서연', '한빛물산', '팀장', 'sy.kim@hanbit.example', '010-1234-5678', '중복 예시']
+        ]
+      }),
+      commit: async (rows) => ({
+        inserted: Math.max(rows.length - 1, 0),
+        updated: 0,
+        skipped: Math.min(rows.length, 1),
+        invalid: 0
+      })
     },
     templates: {
       list: async () => templates,

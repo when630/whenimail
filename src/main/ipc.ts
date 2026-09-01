@@ -1,8 +1,9 @@
 import { app, ipcMain, shell } from 'electron'
 import { renderTemplate, bodyToHtml } from '../shared/render'
-import type { ContactInput, DraftResult, TemplateInput } from '../shared/types'
+import type { ContactInput, DraftResult, DuplicatePolicy, TemplateInput } from '../shared/types'
 import * as repo from './repo'
 import { detectOutlookMode, openDraft } from './outlook'
+import { pickAndParse } from './importer'
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
@@ -13,6 +14,12 @@ export function registerIpcHandlers(): void {
     repo.updateContact(id, input)
   )
   ipcMain.handle('contacts:delete', (_e, id: number) => repo.deleteContact(id))
+  ipcMain.handle('contacts:recent', (_e, limit?: number) => repo.recentContacts(limit))
+
+  ipcMain.handle('import:pick', () => pickAndParse())
+  ipcMain.handle('import:commit', (_e, rows: ContactInput[], policy: DuplicatePolicy) =>
+    repo.importContacts(rows, policy)
+  )
 
   ipcMain.handle('templates:list', () => repo.listTemplates())
   ipcMain.handle('templates:create', (_e, input: TemplateInput) => repo.createTemplate(input))

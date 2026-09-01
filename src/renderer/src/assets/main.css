@@ -1205,6 +1205,63 @@ kbd {
   gap: 5px;
 }
 
+/* ---------- import ---------- */
+.import-file {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 14px;
+}
+
+.mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.import-preview .card {
+  margin-top: 4px;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-compact th,
+.table-compact td {
+  padding: 7px 10px;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.import-policy {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.import-policy label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.import-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid #a6f4c5;
+  border-radius: var(--radius);
+  font-weight: 600;
+}
+
 /* ---------- settings ---------- */
 .settings-section {
   background: var(--surface);

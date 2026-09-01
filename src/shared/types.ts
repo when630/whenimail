@@ -50,6 +50,22 @@ export interface DraftResult {
   error?: string
 }
 
+export interface ImportParseResult {
+  fileName: string
+  headers: string[]
+  rows: string[][]
+}
+
+export type DuplicatePolicy = 'skip' | 'overwrite'
+
+export interface ImportSummary {
+  inserted: number
+  updated: number
+  skipped: number
+  /** 이름이 비어 건너뛴 행 수 */
+  invalid: number
+}
+
 export interface RenderWarning {
   variable: string
   /** 값이 비어 기본값이 쓰였으면 그 기본값, 기본값도 없으면 null */
