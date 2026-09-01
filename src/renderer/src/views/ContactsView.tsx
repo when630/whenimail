@@ -5,7 +5,11 @@ import Avatar from '../components/Avatar'
 import ContactForm from './ContactForm'
 import ComposeModal from './ComposeModal'
 
-export default function ContactsView(): React.JSX.Element {
+export default function ContactsView({
+  newContactSignal = 0
+}: {
+  newContactSignal?: number
+}): React.JSX.Element {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -20,6 +24,10 @@ export default function ContactsView(): React.JSX.Element {
     const t = setTimeout(() => reload(search), 150)
     return () => clearTimeout(t)
   }, [search, reload])
+
+  useEffect(() => {
+    if (newContactSignal > 0) setEditing('new')
+  }, [newContactSignal])
 
   const toggle = (id: number): void => {
     setSelected((prev) => {

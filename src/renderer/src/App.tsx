@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Contact, History, Mail, Send, Settings } from 'lucide-react'
-import type { OutlookAdapter } from '../../shared/types'
+import { useCallback, useEffect, useState } from 'react'
+import { Contact as ContactIcon, History, Mail, Search, Send, Settings } from 'lucide-react'
+import type { Contact, OutlookAdapter } from '../../shared/types'
+import CommandPalette, { type ViewKey } from './components/CommandPalette'
+import ComposeModal from './views/ComposeModal'
 import ContactsView from './views/ContactsView'
 import TemplatesView from './views/TemplatesView'
 import HistoryView from './views/HistoryView'
 import SettingsView from './views/SettingsView'
 
-type ViewKey = 'contacts' | 'templates' | 'history' | 'settings'
-
-const NAV: { key: ViewKey; label: string; Icon: typeof Contact }[] = [
-  { key: 'contacts', label: '명함', Icon: Contact },
+const NAV: { key: ViewKey; label: string; Icon: typeof ContactIcon }[] = [
+  { key: 'contacts', label: '명함', Icon: ContactIcon },
   { key: 'templates', label: '템플릿', Icon: Mail },
   { key: 'history', label: '이력', Icon: History },
   { key: 'settings', label: '설정', Icon: Settings }
@@ -24,47 +24,88 @@ const MODE_LABEL: Record<OutlookAdapter, string> = {
 export default function App(): React.JSX.Element {
   const [view, setView] = useState<ViewKey>('contacts')
   const [outlookMode, setOutlookMode] = useState<OutlookAdapter | null>(null)
+  const [paletteOpen, setPaletteOpen] = useState(
+    () => typeof window !== 'undefined' && window.location.search.includes('palette=1')
+  )
+  const [paletteCompose, setPaletteCompose] = useState<Contact | null>(null)
+  const [newContactSignal, setNewContactSignal] = useState(0)
 
   useEffect(() => {
     window.api.system.outlookMode().then(setOutlookMode)
   }, [])
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((open) => !open)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const openNewContact = useCallback(() => {
+    setView('contacts')
+    setNewContactSignal((n) => n + 1)
+  }, [])
+
   return (
     <div className="app">
-      <aside className="sidebar">
-        <div className="logo">
-          <span className="logo-mark">
-            <Send size={15} color="#fff" strokeWidth={2.2} />
-          </span>
-          <span className="logo-name">whenimail</span>
+      <aside className="rail">
+        <div className="logo-mark" title="whenimail">
+          <Send size={15} color="#fff" strokeWidth={2.2} />
         </div>
-        <nav>
+        <button
+          className="rail-item rail-search"
+          data-tip="검색·실행 (Ctrl+K)"
+          aria-label="검색 및 실행 (Ctrl+K)"
+          onClick={() => setPaletteOpen(true)}
+        >
+          <Search size={18} strokeWidth={1.9} />
+        </button>
+        <nav className="rail-nav">
           {NAV.map(({ key, label, Icon }) => (
             <button
               key={key}
-              className={`nav-item ${view === key ? 'active' : ''}`}
+              className={`rail-item ${view === key ? 'active' : ''}`}
+              data-tip={label}
+              aria-label={label}
               onClick={() => setView(key)}
             >
-              <Icon size={17} strokeWidth={1.8} />
-              {label}
+              <Icon size={18} strokeWidth={1.9} />
             </button>
           ))}
         </nav>
-        <div className="sidebar-footer">
-          <span className="mode-line">
-            <span className={`mode-dot ${outlookMode ?? 'unknown'}`} />
-            {outlookMode ? MODE_LABEL[outlookMode] : '연동 확인 중…'}
-          </span>
+        <div className="rail-footer">
+          <span
+            className={`mode-dot ${outlookMode ?? 'unknown'}`}
+            data-tip={outlookMode ? MODE_LABEL[outlookMode] : '연동 확인 중…'}
+            role="status"
+            aria-label={outlookMode ? MODE_LABEL[outlookMode] : '연동 확인 중'}
+          />
         </div>
       </aside>
       <main className="content">
         <div className="view-enter" key={view}>
-          {view === 'contacts' && <ContactsView />}
+          {view === 'contacts' && <ContactsView newContactSignal={newContactSignal} />}
           {view === 'templates' && <TemplatesView />}
           {view === 'history' && <HistoryView />}
           {view === 'settings' && <SettingsView outlookMode={outlookMode} />}
         </div>
       </main>
+
+      {paletteOpen && (
+        <CommandPalette
+          onClose={() => setPaletteOpen(false)}
+          onNavigate={setView}
+          onCompose={(c) => setPaletteCompose(c)}
+          onNewContact={openNewContact}
+        />
+      )}
+      {paletteCompose && (
+        <ComposeModal contacts={[paletteCompose]} onClose={() => setPaletteCompose(null)} />
+      )}
     </div>
   )
 }
