@@ -37,12 +37,8 @@ function toEditorHtml(value: string): string {
     .replace(/\n/g, '<br>')
 }
 
-const FONT_SIZES: { label: string; value: string }[] = [
-  { label: '작게', value: '2' },
-  { label: '보통', value: '3' },
-  { label: '크게', value: '5' },
-  { label: '아주 크게', value: '6' }
-]
+/** Word/Outlook과 같은 pt 단위 크기 목록 */
+const FONT_SIZES = ['8', '9', '10', '10.5', '11', '12', '14', '16', '18', '20', '24', '28', '36']
 
 interface ToolButton {
   cmd: string
@@ -156,6 +152,25 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
     emit()
   }
 
+  /**
+   * execCommand('fontSize')는 1~7 단계뿐이라, 7을 적용한 뒤
+   * 생성된 <font size="7">을 실제 pt 스타일 span으로 치환한다.
+   */
+  const applyFontSize = (pt: string): void => {
+    const el = divRef.current
+    if (!el) return
+    el.focus()
+    restoreSelection()
+    document.execCommand('fontSize', false, '7')
+    for (const font of el.querySelectorAll('font[size="7"]')) {
+      const span = document.createElement('span')
+      span.style.fontSize = `${pt}pt`
+      while (font.firstChild) span.appendChild(font.firstChild)
+      font.replaceWith(span)
+    }
+    emit()
+  }
+
   useImperativeHandle(ref, () => ({
     insertText: (text: string) => {
       const el = divRef.current
@@ -212,20 +227,20 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
         <span className="rich-sep" />
         <select
           className="rich-select"
-          title="글자 크기"
+          title="글자 크기 (pt)"
           aria-label="글자 크기"
           value=""
           onMouseDown={saveSelection}
           onChange={(e) => {
-            if (e.target.value) execWithRestore('fontSize', e.target.value)
+            if (e.target.value) applyFontSize(e.target.value)
           }}
         >
           <option value="" disabled>
             크기
           </option>
-          {FONT_SIZES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
+          {FONT_SIZES.map((pt) => (
+            <option key={pt} value={pt}>
+              {pt}pt
             </option>
           ))}
         </select>
