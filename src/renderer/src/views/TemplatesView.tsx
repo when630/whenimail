@@ -3,6 +3,7 @@ import { CircleAlert, Mail, Plus, Save, Trash2 } from 'lucide-react'
 import type { EmailTemplate, TemplateInput } from '../../../shared/types'
 import { TEMPLATE_VARIABLES } from '../../../shared/render'
 import { useDialog } from '../components/dialogs'
+import RichEditor, { type RichEditorHandle } from '../components/RichEditor'
 
 const EMPTY: TemplateInput = { name: '', subject_tpl: '', body_tpl: '' }
 
@@ -12,7 +13,7 @@ export default function TemplatesView(): React.JSX.Element {
   const [form, setForm] = useState<TemplateInput>(EMPTY)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
-  const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const bodyRef = useRef<RichEditorHandle>(null)
   const { confirm, toast } = useDialog()
 
   /** dirty 검사 없이 선택 상태만 반영 — 저장 후 재선택 등 내부용 */
@@ -60,20 +61,9 @@ export default function TemplatesView(): React.JSX.Element {
   }
 
   const insertVariable = (name: string): void => {
-    const ta = bodyRef.current
     const token = `{{${name}}}`
-    if (!ta) {
-      set('body_tpl', form.body_tpl + token)
-      return
-    }
-    const start = ta.selectionStart
-    const end = ta.selectionEnd
-    const next = form.body_tpl.slice(0, start) + token + form.body_tpl.slice(end)
-    set('body_tpl', next)
-    requestAnimationFrame(() => {
-      ta.focus()
-      ta.selectionStart = ta.selectionEnd = start + token.length
-    })
+    if (bodyRef.current) bodyRef.current.insertText(token)
+    else set('body_tpl', form.body_tpl + token)
   }
 
   const save = async (): Promise<void> => {
@@ -168,15 +158,15 @@ export default function TemplatesView(): React.JSX.Element {
                 </button>
               ))}
             </div>
-            <label className="form-field form-field-grow">
+            <div className="form-field form-field-grow">
               <span>본문 — 변수는 {'{{이름}}'} 또는 기본값 포함 {'{{이름|고객}}'} 형식</span>
-              <textarea
+              <RichEditor
                 ref={bodyRef}
                 value={form.body_tpl}
-                placeholder={'{{이름|고객}}님, 안녕하세요.\n지난번 미팅에서 인사드린 ...'}
-                onChange={(e) => set('body_tpl', e.target.value)}
+                placeholder="{{이름|고객}}님, 안녕하세요."
+                onChange={(html) => set('body_tpl', html)}
               />
-            </label>
+            </div>
             <div className="editor-actions">
               {typeof selectedId === 'number' && (
                 <button

@@ -1,6 +1,6 @@
 import { app, ipcMain, shell } from 'electron'
 import path from 'node:path'
-import { renderTemplate, bodyToHtml } from '../shared/render'
+import { renderTemplate, bodyToHtml, htmlToText, isHtmlBody } from '../shared/render'
 import type { ContactInput, DraftResult, DuplicatePolicy, TemplateInput } from '../shared/types'
 import * as repo from './repo'
 import { detectOutlookMode, openDraft } from './outlook'
@@ -63,12 +63,12 @@ export function registerIpcHandlers(): void {
         }
         try {
           const subject = renderTemplate(template.subject_tpl, contact).text
-          const bodyText = renderTemplate(template.body_tpl, contact).text
+          const body = renderTemplate(template.body_tpl, contact).text
           const adapter = await openDraft({
             to: contact.email.trim(),
             subject,
-            html: bodyToHtml(bodyText),
-            text: bodyText
+            html: bodyToHtml(body),
+            text: isHtmlBody(body) ? htmlToText(body) : body
           })
           repo.insertDraftLog({
             contactId: contact.id,

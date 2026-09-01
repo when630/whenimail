@@ -52,8 +52,32 @@ export function renderTemplate(tpl: string, contact: Contact): RenderResult {
   return { text, warnings }
 }
 
-/** 본문(줄바꿈 텍스트)을 Outlook용 HTML로 변환 */
+/** 본문이 리치 텍스트(HTML)로 저장되었는지 판별 */
+export function isHtmlBody(body: string): boolean {
+  return /<[a-z][^>]*>/i.test(body)
+}
+
+/** HTML 본문을 mailto 폴백용 플레인 텍스트로 */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|ul|ol|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+const BODY_STYLE = `font-family:'Malgun Gothic',sans-serif;font-size:10.5pt;line-height:1.6;`
+
+/** 본문을 Outlook용 HTML로 변환 — 리치 텍스트는 그대로, 플레인 텍스트는 문단으로 */
 export function bodyToHtml(body: string): string {
+  if (isHtmlBody(body)) {
+    return `<html><body style="${BODY_STYLE}">${body}</body></html>`
+  }
   const escaped = body
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -62,5 +86,5 @@ export function bodyToHtml(body: string): string {
     .split(/\r?\n/)
     .map((line) => (line.trim() === '' ? '<p>&nbsp;</p>' : `<p>${line}</p>`))
     .join('\n')
-  return `<html><body style="font-family:'Malgun Gothic',sans-serif;font-size:10.5pt;">${paragraphs}</body></html>`
+  return `<html><body style="${BODY_STYLE}">${paragraphs}</body></html>`
 }

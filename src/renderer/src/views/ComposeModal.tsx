@@ -11,7 +11,7 @@ import {
   XCircle
 } from 'lucide-react'
 import type { Contact, DraftResult, EmailTemplate } from '../../../shared/types'
-import { renderTemplate } from '../../../shared/render'
+import { isHtmlBody, renderTemplate } from '../../../shared/render'
 import { useDialog } from '../components/dialogs'
 
 interface Props {
@@ -167,7 +167,15 @@ export default function ComposeModal({
                   <span className="preview-label">제목</span>
                   <span>{preview.subject.text}</span>
                 </div>
-                <pre className="preview-body">{preview.body.text}</pre>
+                {isHtmlBody(preview.body.text) ? (
+                  <div
+                    className="preview-body preview-html"
+                    // 로컬 데이터(사용자 본인이 작성한 템플릿)만 렌더링
+                    dangerouslySetInnerHTML={{ __html: preview.body.text }}
+                  />
+                ) : (
+                  <pre className="preview-body">{preview.body.text}</pre>
+                )}
                 {preview.warnings.length > 0 && (
                   <ul className="warning-list">
                     {preview.warnings.map((w, i) => (

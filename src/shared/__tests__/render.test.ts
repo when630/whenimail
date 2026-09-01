@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bodyToHtml, renderTemplate } from '../render'
+import { bodyToHtml, htmlToText, isHtmlBody, renderTemplate } from '../render'
 import type { Contact } from '../types'
 
 const contact: Contact = {
@@ -64,6 +64,24 @@ describe('bodyToHtml', () => {
   })
 
   it('HTML 특수문자를 이스케이프한다', () => {
-    expect(bodyToHtml('<b>&')).toContain('&lt;b&gt;&amp;')
+    expect(bodyToHtml('a < b & c')).toContain('a &lt; b &amp; c')
+  })
+
+  it('리치 텍스트(HTML) 본문은 그대로 감싼다', () => {
+    const html = bodyToHtml('<p>안녕 <b>세진</b>님</p>')
+    expect(html).toContain('<p>안녕 <b>세진</b>님</p>')
+  })
+})
+
+describe('isHtmlBody / htmlToText', () => {
+  it('태그 유무로 리치 텍스트를 판별한다', () => {
+    expect(isHtmlBody('<p>hi</p>')).toBe(true)
+    expect(isHtmlBody('평문\n둘째 줄')).toBe(false)
+  })
+
+  it('HTML을 플레인 텍스트로 변환한다', () => {
+    expect(htmlToText('<div>안녕<br>하세요</div><ul><li>항목</li></ul>&amp;')).toBe(
+      '안녕\n하세요\n항목\n\n&'
+    )
   })
 })
