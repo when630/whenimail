@@ -3,7 +3,7 @@ import { History } from 'lucide-react'
 import type { DraftLog } from '../../../shared/types'
 
 export default function HistoryView(): React.JSX.Element {
-  const [logs, setLogs] = useState<DraftLog[]>([])
+  const [logs, setLogs] = useState<DraftLog[] | null>(null)
 
   useEffect(() => {
     window.api.drafts.history().then(setLogs)
@@ -14,7 +14,7 @@ export default function HistoryView(): React.JSX.Element {
       <header className="view-header">
         <h1>초안 생성 이력</h1>
       </header>
-      {logs.length === 0 ? (
+      {logs === null ? null : logs.length === 0 ? (
         <div className="empty">
           <History size={36} strokeWidth={1.4} />
           <span className="empty-title">아직 이력이 없습니다</span>

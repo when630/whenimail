@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ContactRound, Pencil, Plus, Search, SendHorizontal, Trash2 } from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
 import Avatar from '../components/Avatar'
@@ -10,7 +10,7 @@ export default function ContactsView({
 }: {
   newContactSignal?: number
 }): React.JSX.Element {
-  const [contacts, setContacts] = useState<Contact[]>([])
+  const [contacts, setContacts] = useState<Contact[] | null>(null)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [editing, setEditing] = useState<Contact | 'new' | null>(null)
@@ -20,7 +20,14 @@ export default function ContactsView({
     setContacts(await window.api.contacts.list(q))
   }, [])
 
+  const firstLoad = useRef(true)
   useEffect(() => {
+    // 첫 로드는 즉시, 검색 입력은 디바운스
+    if (firstLoad.current) {
+      firstLoad.current = false
+      reload(search)
+      return
+    }
     const t = setTimeout(() => reload(search), 150)
     return () => clearTimeout(t)
   }, [search, reload])
@@ -65,7 +72,8 @@ export default function ContactsView({
     setComposeTargets(targets)
   }
 
-  const selectedContacts = contacts.filter((c) => selected.has(c.id))
+  const list = contacts ?? []
+  const selectedContacts = list.filter((c) => selected.has(c.id))
 
   return (
     <div className="view">
@@ -95,7 +103,7 @@ export default function ContactsView({
         </div>
       </header>
 
-      {contacts.length === 0 ? (
+      {contacts === null ? null : list.length === 0 ? (
         <div className="empty">
           <ContactRound size={36} strokeWidth={1.4} />
           {search ? (
@@ -120,9 +128,9 @@ export default function ContactsView({
                   <input
                     type="checkbox"
                     aria-label="전체 선택"
-                    checked={selected.size > 0 && selected.size === contacts.length}
+                    checked={selected.size > 0 && selected.size === list.length}
                     onChange={(e) =>
-                      setSelected(e.target.checked ? new Set(contacts.map((c) => c.id)) : new Set())
+                      setSelected(e.target.checked ? new Set(list.map((c) => c.id)) : new Set())
                     }
                   />
                 </th>
@@ -134,7 +142,7 @@ export default function ContactsView({
               </tr>
             </thead>
             <tbody>
-              {contacts.map((c, i) => (
+              {list.map((c, i) => (
                 <tr
                   key={c.id}
                   className={selected.has(c.id) ? 'row-selected' : ''}

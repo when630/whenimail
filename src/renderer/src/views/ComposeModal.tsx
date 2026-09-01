@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function ComposeModal({ contacts, onClose }: Props): React.JSX.Element {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([])
+  const [templates, setTemplates] = useState<EmailTemplate[] | null>(null)
   const [templateId, setTemplateId] = useState<number | null>(null)
   const [previewIdx, setPreviewIdx] = useState(0)
   const [sending, setSending] = useState(false)
@@ -34,7 +34,7 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
 
   const targets = useMemo(() => contacts.filter((c) => c.email.trim()), [contacts])
   const skipped = contacts.length - targets.length
-  const template = templates.find((t) => t.id === templateId) ?? null
+  const template = templates?.find((t) => t.id === templateId) ?? null
   const previewContact = targets[Math.min(previewIdx, targets.length - 1)] ?? null
 
   const preview = useMemo(() => {
@@ -93,7 +93,7 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
               </button>
             </div>
           </div>
-        ) : templates.length === 0 ? (
+        ) : templates === null ? null : templates.length === 0 ? (
           <div className="empty">
             <MailX size={32} strokeWidth={1.4} />
             <span className="empty-title">템플릿이 없습니다</span>

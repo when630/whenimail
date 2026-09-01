@@ -42,7 +42,6 @@
 @keyframes view-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
 }
 
@@ -293,7 +292,7 @@ body {
 }
 
 .view-enter {
-  animation: view-in 260ms var(--ease-out) both;
+  animation: view-in 180ms var(--ease-out) both;
 }
 
 .view {

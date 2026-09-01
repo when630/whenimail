@@ -21,8 +21,15 @@ const MODE_LABEL: Record<OutlookAdapter, string> = {
   mailto: 'Outlook 연동 · mailto'
 }
 
+const VIEW_KEYS: ViewKey[] = ['contacts', 'templates', 'history', 'settings']
+
+function initialView(): ViewKey {
+  const v = new URLSearchParams(window.location.search).get('view')
+  return VIEW_KEYS.includes(v as ViewKey) ? (v as ViewKey) : 'contacts'
+}
+
 export default function App(): React.JSX.Element {
-  const [view, setView] = useState<ViewKey>('contacts')
+  const [view, setView] = useState<ViewKey>(initialView)
   const [outlookMode, setOutlookMode] = useState<OutlookAdapter | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(
     () => typeof window !== 'undefined' && window.location.search.includes('palette=1')

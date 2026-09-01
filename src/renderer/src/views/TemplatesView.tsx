@@ -6,7 +6,7 @@ import { TEMPLATE_VARIABLES } from '../../../shared/render'
 const EMPTY: TemplateInput = { name: '', subject_tpl: '', body_tpl: '' }
 
 export default function TemplatesView(): React.JSX.Element {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([])
+  const [templates, setTemplates] = useState<EmailTemplate[] | null>(null)
   const [selectedId, setSelectedId] = useState<number | 'new' | null>(null)
   const [form, setForm] = useState<TemplateInput>(EMPTY)
   const [dirty, setDirty] = useState(false)
@@ -96,7 +96,7 @@ export default function TemplatesView(): React.JSX.Element {
             <Plus size={15} />새 템플릿
           </button>
         </header>
-        {templates.length === 0 ? (
+        {templates === null ? null : templates.length === 0 ? (
           <div className="empty">
             <Mail size={32} strokeWidth={1.4} />
             <span className="empty-title">템플릿이 없습니다</span>
@@ -159,7 +159,7 @@ export default function TemplatesView(): React.JSX.Element {
                 <button
                   className="btn ghost danger"
                   onClick={() => {
-                    const t = templates.find((x) => x.id === selectedId)
+                    const t = templates?.find((x) => x.id === selectedId)
                     if (t) remove(t)
                   }}
                 >
