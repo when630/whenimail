@@ -6,11 +6,19 @@ import {
   FolderOpen,
   Loader2,
   MailCheck,
+  Palette,
   RefreshCw,
   RotateCcw
 } from 'lucide-react'
 import type { OutlookAdapter, UpdateState } from '../../../shared/types'
 import { useDialog } from '../components/dialogs'
+import { getThemePref, setThemePref, type ThemePref } from '../theme'
+
+const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
+  { value: 'system', label: '시스템' },
+  { value: 'light', label: '라이트' },
+  { value: 'dark', label: '다크' }
+]
 
 const UPDATE_LABEL: Record<UpdateState['status'], string> = {
   idle: '확인 전',
@@ -36,7 +44,13 @@ export default function SettingsView({
   const [busy, setBusy] = useState<'export' | 'import' | null>(null)
   const [version, setVersion] = useState('')
   const [update, setUpdate] = useState<UpdateState>({ status: 'idle' })
+  const [theme, setTheme] = useState<ThemePref>(getThemePref)
   const { confirm, toast } = useDialog()
+
+  const changeTheme = (pref: ThemePref): void => {
+    setThemePref(pref)
+    setTheme(pref)
+  }
 
   useEffect(() => {
     window.api.system.version().then(setVersion)
@@ -96,6 +110,26 @@ export default function SettingsView({
           whenimail은 메일을 자동 전송하지 않습니다. 항상 Outlook 초안을 열어 확인 후 직접
           전송합니다.
         </p>
+      </section>
+      <section className="settings-section">
+        <h2>
+          <Palette size={16} />
+          화면
+        </h2>
+        <p className="muted">테마를 선택합니다. 시스템은 Windows 설정을 따라갑니다.</p>
+        <div className="segment" role="radiogroup" aria-label="테마">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              role="radio"
+              aria-checked={theme === opt.value}
+              className={theme === opt.value ? 'active' : ''}
+              onClick={() => changeTheme(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </section>
       <section className="settings-section">
         <h2>

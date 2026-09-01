@@ -6,8 +6,10 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { DialogProvider } from './components/dialogs'
 import { installMockApiIfNeeded } from './mockApi'
+import { initTheme } from './theme'
 
 installMockApiIfNeeded()
+initTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

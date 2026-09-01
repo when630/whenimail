@@ -80,6 +80,118 @@
   }
 }
 
+[data-theme='dark'] {
+  --bg: #0f1218;
+  --surface: #161a23;
+  --surface-sunken: #1c2130;
+  --border: #262c3b;
+  --border-strong: #343b4e;
+  --text: #e7eaf3;
+  --text-secondary: #aab3c7;
+  --muted: #7f8aa3;
+  --primary: #6366f1;
+  --primary-hover: #818cf8;
+  --primary-soft: rgba(99, 102, 241, 0.16);
+  --primary-soft-text: #a5b4fc;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.14);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.14);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+/* 다크에서 라이트 파스텔이 하드코딩된 지점 보정 */
+[data-theme='dark'] .btn:hover:not(:disabled),
+[data-theme='dark'] input:hover,
+[data-theme='dark'] select:hover,
+[data-theme='dark'] textarea:hover {
+  border-color: #4a5268;
+}
+
+[data-theme='dark'] .btn.primary:hover:not(:disabled) {
+  border-color: var(--primary-hover);
+}
+
+[data-theme='dark'] .btn.primary:disabled {
+  background: rgba(99, 102, 241, 0.35);
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+[data-theme='dark'] .btn.danger:hover:not(:disabled) {
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+[data-theme='dark'] .badge.neutral {
+  background: rgba(255, 255, 255, 0.08);
+  color: #c3cadb;
+}
+
+[data-theme='dark'] .badge.mode-com {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+[data-theme='dark'] .badge.mode-eml,
+[data-theme='dark'] .badge.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+
+[data-theme='dark'] .badge.mode-mailto {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+[data-theme='dark'] .warning-list {
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+[data-theme='dark'] .import-summary {
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+[data-theme='dark'] .result-list li.fail {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+[data-theme='dark'] .palette {
+  background: rgba(22, 26, 35, 0.86);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+[data-theme='dark'] .palette-input,
+[data-theme='dark'] .palette-footer {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] kbd {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--muted);
+}
+
+[data-theme='dark'] .palette-item.active {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+[data-theme='dark'] .palette-item-icon {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme='dark'] .palette-crumb {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+[data-theme='dark'] .warning-list code {
+  background: rgba(251, 191, 36, 0.15);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -987,6 +1099,55 @@ input[type='checkbox'] {
   line-height: 1.7;
 }
 
+/* ---------- rich editor ---------- */
+.rich-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition:
+    border-color var(--ease),
+    box-shadow var(--ease);
+  min-height: 0;
+}
+
+.rich-wrap:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
+}
+
+.rich-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rich-editor {
+  flex: 1;
+  padding: 10px 12px;
+  line-height: 1.7;
+  overflow-y: auto;
+  outline: none;
+  min-height: 160px;
+}
+
+.rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.preview-html {
+  line-height: 1.7;
+}
+
+.preview-html p {
+  margin: 0 0 4px;
+}
+
 .editor-actions {
   display: flex;
   align-items: center;
@@ -1524,4 +1685,38 @@ kbd {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.segment {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.segment button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border: none;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background var(--ease),
+    color var(--ease);
+}
+
+.segment button + button {
+  border-left: 1px solid var(--border);
+}
+
+.segment button:hover:not(.active) {
+  background: var(--surface-sunken);
+}
+
+.segment button.active {
+  background: var(--primary);
+  color: #fff;
 }
