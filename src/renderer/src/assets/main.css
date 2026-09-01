@@ -1120,9 +1120,84 @@ input[type='checkbox'] {
 
 .rich-toolbar {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 2px;
   padding: 4px 6px;
   border-bottom: 1px solid var(--border);
+}
+
+.rich-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.tool-active {
+  background: var(--primary-soft) !important;
+  color: var(--primary-soft-text) !important;
+}
+
+.rich-select {
+  font-size: 12.5px;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.rich-select:hover {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.rich-color {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rich-color:hover {
+  background: var(--surface-sunken);
+}
+
+.rich-color input[type='color'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+}
+
+.rich-color-icon {
+  border-bottom: 3px solid #d92d20;
+  line-height: 1.1;
+}
+
+.rich-linkbar {
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-sunken);
+}
+
+.rich-linkbar input {
+  flex: 1;
+  padding: 5px 9px;
+  font-size: 13px;
 }
 
 .rich-editor {
