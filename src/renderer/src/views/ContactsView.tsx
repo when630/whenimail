@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ContactRound, Pencil, Plus, Search, SendHorizontal, Trash2 } from 'lucide-react'
 import type { Contact, ContactInput } from '../../../shared/types'
+import Avatar from '../components/Avatar'
 import ContactForm from './ContactForm'
 import ComposeModal from './ComposeModal'
 
@@ -125,8 +126,12 @@ export default function ContactsView(): React.JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {contacts.map((c) => (
-                <tr key={c.id} className={selected.has(c.id) ? 'row-selected' : ''}>
+              {contacts.map((c, i) => (
+                <tr
+                  key={c.id}
+                  className={selected.has(c.id) ? 'row-selected' : ''}
+                  style={{ animationDelay: `${Math.min(i, 14) * 22}ms` }}
+                >
                   <td className="col-check">
                     <input
                       type="checkbox"
@@ -136,7 +141,10 @@ export default function ContactsView(): React.JSX.Element {
                     />
                   </td>
                   <td className="cell-name" onClick={() => setEditing(c)}>
-                    {c.name}
+                    <span className="name-with-avatar">
+                      <Avatar name={c.name} />
+                      {c.name}
+                    </span>
                   </td>
                   <td>
                     {c.company}

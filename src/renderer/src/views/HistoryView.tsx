@@ -33,8 +33,8 @@ export default function HistoryView(): React.JSX.Element {
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
-                <tr key={log.id}>
+              {logs.map((log, i) => (
+                <tr key={log.id} style={{ animationDelay: `${Math.min(i, 14) * 22}ms` }}>
                   <td className="nowrap">{log.created_at}</td>
                   <td>
                     {log.contact_name}

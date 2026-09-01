@@ -58,10 +58,12 @@ export default function App(): React.JSX.Element {
         </div>
       </aside>
       <main className="content">
-        {view === 'contacts' && <ContactsView />}
-        {view === 'templates' && <TemplatesView />}
-        {view === 'history' && <HistoryView />}
-        {view === 'settings' && <SettingsView outlookMode={outlookMode} />}
+        <div className="view-enter" key={view}>
+          {view === 'contacts' && <ContactsView />}
+          {view === 'templates' && <TemplatesView />}
+          {view === 'history' && <HistoryView />}
+          {view === 'settings' && <SettingsView outlookMode={outlookMode} />}
+        </div>
       </main>
     </div>
   )

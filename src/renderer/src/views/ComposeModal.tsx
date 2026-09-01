@@ -3,7 +3,9 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Loader2,
   MailX,
+  SendHorizontal,
   TriangleAlert,
   X,
   XCircle
@@ -72,8 +74,12 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
         {results ? (
           <div className="compose-results">
             <ul className="result-list">
-              {results.map((r) => (
-                <li key={r.contactId} className={r.ok ? 'ok' : 'fail'}>
+              {results.map((r, i) => (
+                <li
+                  key={r.contactId}
+                  className={r.ok ? 'ok' : 'fail'}
+                  style={{ animationDelay: `${Math.min(i, 14) * 40}ms` }}
+                >
                   {r.ok ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
                   {r.contactName}
                   {r.ok ? ` — 초안 열림 (${r.adapter})` : ` — ${r.error}`}
@@ -179,9 +185,17 @@ export default function ComposeModal({ contacts, onClose }: Props): React.JSX.El
                 onClick={createDrafts}
                 disabled={sending || !template || targets.length === 0}
               >
-                {sending
-                  ? '초안 생성 중…'
-                  : `Outlook 초안 열기${targets.length > 1 ? ` (${targets.length}건)` : ''}`}
+                {sending ? (
+                  <>
+                    <Loader2 size={15} className="spin" />
+                    초안 생성 중…
+                  </>
+                ) : (
+                  <>
+                    <SendHorizontal size={15} />
+                    Outlook 초안 열기{targets.length > 1 ? ` (${targets.length}건)` : ''}
+                  </>
+                )}
               </button>
             </div>
           </>
