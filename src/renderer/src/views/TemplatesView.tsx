@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { CircleAlert, Mail, Plus, Save, Trash2 } from 'lucide-react'
-import type { EmailTemplate, TemplateInput } from '../../../shared/types'
+import { CircleAlert, Mail, Paperclip, Plus, Save, Trash2, X } from 'lucide-react'
+import type { EmailTemplate, TemplateAttachment, TemplateInput } from '../../../shared/types'
 import { TEMPLATE_VARIABLES } from '../../../shared/render'
 import { useDialog } from '../components/dialogs'
 import RichEditor, { type RichEditorHandle } from '../components/RichEditor'
 
-const EMPTY: TemplateInput = { name: '', subject_tpl: '', body_tpl: '' }
+const EMPTY: TemplateInput = { name: '', subject_tpl: '', body_tpl: '', attachments: [] }
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
+  return `${(n / 1024 / 1024).toFixed(1)} MB`
+}
 
 export default function TemplatesView(): React.JSX.Element {
   const [templates, setTemplates] = useState<EmailTemplate[] | null>(null)
@@ -13,6 +19,7 @@ export default function TemplatesView(): React.JSX.Element {
   const [form, setForm] = useState<TemplateInput>(EMPTY)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [picking, setPicking] = useState(false)
   const bodyRef = useRef<RichEditorHandle>(null)
   const { confirm, toast } = useDialog()
 
@@ -23,7 +30,12 @@ export default function TemplatesView(): React.JSX.Element {
       setForm(EMPTY)
     } else if (t) {
       setSelectedId(t.id)
-      setForm({ name: t.name, subject_tpl: t.subject_tpl, body_tpl: t.body_tpl })
+      setForm({
+        name: t.name,
+        subject_tpl: t.subject_tpl,
+        body_tpl: t.body_tpl,
+        attachments: t.attachments ?? []
+      })
     } else {
       setSelectedId(null)
       setForm(EMPTY)
@@ -55,7 +67,7 @@ export default function TemplatesView(): React.JSX.Element {
     applySelection(t)
   }
 
-  const set = (key: keyof TemplateInput, value: string): void => {
+  const set = (key: 'name' | 'subject_tpl' | 'body_tpl', value: string): void => {
     setForm((f) => ({ ...f, [key]: value }))
     setDirty(true)
   }
@@ -64,6 +76,25 @@ export default function TemplatesView(): React.JSX.Element {
     const token = `{{${name}}}`
     if (bodyRef.current) bodyRef.current.insertText(token)
     else set('body_tpl', form.body_tpl + token)
+  }
+
+  const addAttachments = async (): Promise<void> => {
+    setPicking(true)
+    try {
+      const picked = await window.api.templates.pickAttachments()
+      if (!picked || picked.length === 0) return
+      setForm((f) => ({ ...f, attachments: [...f.attachments, ...picked] }))
+      setDirty(true)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : String(e), 'error')
+    } finally {
+      setPicking(false)
+    }
+  }
+
+  const removeAttachment = (a: TemplateAttachment): void => {
+    setForm((f) => ({ ...f, attachments: f.attachments.filter((x) => x.path !== a.path) }))
+    setDirty(true)
   }
 
   const save = async (): Promise<void> => {
@@ -100,6 +131,8 @@ export default function TemplatesView(): React.JSX.Element {
     toast('삭제되었습니다')
   }
 
+  const totalSize = form.attachments.reduce((s, a) => s + a.size, 0)
+
   return (
     <div className="view view-split">
       <div className="split-list">
@@ -122,7 +155,15 @@ export default function TemplatesView(): React.JSX.Element {
                 className={selectedId === t.id ? 'active' : ''}
                 onClick={() => selectTemplate(t)}
               >
-                <strong>{t.name}</strong>
+                <strong>
+                  {t.name}
+                  {(t.attachments?.length ?? 0) > 0 && (
+                    <span className="side-attach" title={`첨부 ${t.attachments?.length ?? 0}개`}>
+                      <Paperclip size={12} />
+                      {t.attachments?.length ?? 0}
+                    </span>
+                  )}
+                </strong>
                 <small>{t.subject_tpl || '(제목 없음)'}</small>
               </li>
             ))}
@@ -159,7 +200,9 @@ export default function TemplatesView(): React.JSX.Element {
               ))}
             </div>
             <div className="form-field form-field-grow">
-              <span>본문 — 변수는 {'{{이름}}'} 또는 기본값 포함 {'{{이름|고객}}'} 형식</span>
+              <span>
+                본문 — 변수는 {'{{이름}}'} 또는 기본값 포함 {'{{이름|고객}}'} 형식
+              </span>
               <RichEditor
                 ref={bodyRef}
                 value={form.body_tpl}
@@ -167,6 +210,55 @@ export default function TemplatesView(): React.JSX.Element {
                 onChange={(html) => set('body_tpl', html)}
               />
             </div>
+
+            <div className="form-field">
+              <span className="field-head">
+                <span>
+                  첨부 파일
+                  {form.attachments.length > 0 && (
+                    <em className="muted">
+                      {' '}
+                      — {form.attachments.length}개 · {formatBytes(totalSize)}
+                    </em>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={addAttachments}
+                  disabled={picking}
+                >
+                  <Paperclip size={14} />
+                  파일 추가
+                </button>
+              </span>
+              {form.attachments.length > 0 && (
+                <ul className="attach-list">
+                  {form.attachments.map((a) => (
+                    <li key={a.path} className="attach-item">
+                      <Paperclip size={13} />
+                      <span className="attach-name" title={a.name}>
+                        {a.name}
+                      </span>
+                      <span className="muted">{formatBytes(a.size)}</span>
+                      <button
+                        type="button"
+                        className="btn ghost sm icon-only"
+                        aria-label={`${a.name} 첨부 제거`}
+                        onClick={() => removeAttachment(a)}
+                      >
+                        <X size={13} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <span className="hint-inline">
+                이 템플릿으로 만드는 모든 초안에 함께 첨부됩니다. 파일은 앱 데이터 폴더에 복사되어
+                보관됩니다.
+              </span>
+            </div>
+
             <div className="editor-actions">
               {typeof selectedId === 'number' && (
                 <button

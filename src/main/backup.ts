@@ -24,6 +24,8 @@ export async function exportBackup(): Promise<string | null> {
   zip.addLocalFile(path.join(dir, DB_FILE))
   const cardsDir = path.join(dir, 'cards')
   if (fs.existsSync(cardsDir)) zip.addLocalFolder(cardsDir, 'cards')
+  const attachDir = path.join(dir, 'attachments')
+  if (fs.existsSync(attachDir)) zip.addLocalFolder(attachDir, 'attachments')
   zip.writeZip(filePath)
   return filePath
 }

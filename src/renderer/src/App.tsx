@@ -109,8 +109,7 @@ export default function App(): React.JSX.Element {
     setImportSignal((n) => n + 1)
   }, [])
 
-  const tip = (label: string): { 'data-tip'?: string } =>
-    expanded ? {} : { 'data-tip': label }
+  const tip = (label: string): { 'data-tip'?: string } => (expanded ? {} : { 'data-tip': label })
 
   return (
     <div className="app">
@@ -182,7 +181,9 @@ export default function App(): React.JSX.Element {
           )}
           {view === 'templates' && <TemplatesView />}
           {view === 'history' && <HistoryView />}
-          {view === 'settings' && <SettingsView outlookMode={outlookMode} />}
+          {view === 'settings' && (
+            <SettingsView outlookMode={outlookMode} onOutlookModeChange={setOutlookMode} />
+          )}
         </div>
       </main>
 

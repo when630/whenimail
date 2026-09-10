@@ -9,8 +9,10 @@ import type {
 import { useDialog } from '../components/dialogs'
 
 type StringField = Exclude<keyof ContactInput, 'tags'>
+/** 매핑 가능한 열 — 문자열 필드 + 태그(여러 값) */
+type MapKey = StringField | 'tags'
 
-const FIELDS: { key: StringField; label: string; aliases: string[] }[] = [
+const FIELDS: { key: MapKey; label: string; aliases: string[] }[] = [
   { key: 'name', label: '이름', aliases: ['이름', '성명', 'name', '담당자'] },
   { key: 'company', label: '회사', aliases: ['회사', '회사명', 'company', '거래처', '업체'] },
   { key: 'department', label: '부서', aliases: ['부서', 'department', '팀'] },
@@ -24,12 +26,25 @@ const FIELDS: { key: StringField; label: string; aliases: string[] }[] = [
   },
   { key: 'address', label: '주소', aliases: ['주소', 'address'] },
   { key: 'website', label: '웹사이트', aliases: ['웹사이트', 'website', 'url', '홈페이지'] },
-  { key: 'memo', label: '메모', aliases: ['메모', '비고', 'memo', 'note', '노트'] }
+  { key: 'memo', label: '메모', aliases: ['메모', '비고', 'memo', 'note', '노트'] },
+  { key: 'tags', label: '태그', aliases: ['태그', 'tag', '분류', '그룹', '라벨', 'label'] }
 ]
 
+/** 태그 셀 "전시회, VIP / 협력사" → ['전시회', 'VIP', '협력사'] */
+function splitTags(cell: string): string[] {
+  return [
+    ...new Set(
+      cell
+        .split(/[,;/|\n]+/)
+        .map((t) => t.trim())
+        .filter(Boolean)
+    )
+  ]
+}
+
 /** 헤더명으로 필드 자동 매핑 */
-function guessMapping(headers: string[]): Record<StringField, number> {
-  const mapping = {} as Record<StringField, number>
+function guessMapping(headers: string[]): Record<MapKey, number> {
+  const mapping = {} as Record<MapKey, number>
   const used = new Set<number>()
   for (const field of FIELDS) {
     mapping[field.key] = -1
@@ -52,7 +67,9 @@ interface Props {
 
 export default function ImportModal({ onClose }: Props): React.JSX.Element {
   const [parsed, setParsed] = useState<ImportParseResult | null>(null)
-  const [mapping, setMapping] = useState<Record<StringField, number> | null>(null)
+  const [mapping, setMapping] = useState<Record<MapKey, number> | null>(null)
+  /** 가져오는 모든 명함에 함께 붙일 태그 (쉼표 구분) */
+  const [extraTags, setExtraTags] = useState('')
   const [policy, setPolicy] = useState<DuplicatePolicy>('skip')
   const [busy, setBusy] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
@@ -75,15 +92,23 @@ export default function ImportModal({ onClose }: Props): React.JSX.Element {
 
   const mappedRows = useMemo<ContactInput[]>(() => {
     if (!parsed || !mapping) return []
+    const common = splitTags(extraTags)
     return parsed.rows.map((row) => {
       const input = { tags: [] } as unknown as ContactInput
       for (const field of FIELDS) {
         const col = mapping[field.key]
-        input[field.key] = col >= 0 ? (row[col] ?? '') : ''
+        const cell = col >= 0 ? (row[col] ?? '') : ''
+        if (field.key === 'tags') input.tags = [...new Set([...splitTags(cell), ...common])]
+        else input[field.key] = cell
       }
       return input
     })
-  }, [parsed, mapping])
+  }, [parsed, mapping, extraTags])
+
+  /** 미리보기에 보일 열 — 매핑된 열 + (일괄 태그가 있으면) 태그 열 */
+  const previewFields = FIELDS.filter(
+    (f) => mapping !== null && (mapping[f.key] >= 0 || (f.key === 'tags' && extraTags.trim()))
+  )
 
   const validCount = mappedRows.filter((r) => r.name.trim()).length
 
@@ -152,6 +177,7 @@ export default function ImportModal({ onClose }: Props): React.JSX.Element {
                       {field.key === 'name' && <em className="req">*</em>}
                     </span>
                     <select
+                      aria-label={`${field.label} 열 선택`}
                       value={mapping[field.key]}
                       onChange={(e) =>
                         setMapping({ ...mapping, [field.key]: Number(e.target.value) })
@@ -168,13 +194,22 @@ export default function ImportModal({ onClose }: Props): React.JSX.Element {
                 ))}
               </div>
 
+              <label className="form-field import-extra-tags">
+                <span>가져오는 모든 명함에 태그 추가 (선택, 쉼표 구분)</span>
+                <input
+                  value={extraTags}
+                  placeholder="예: 2026 전시회"
+                  onChange={(e) => setExtraTags(e.target.value)}
+                />
+              </label>
+
               <div className="import-preview">
                 <div className="palette-group">미리보기 (처음 4행)</div>
                 <div className="card table-scroll">
                   <table className="table table-compact">
                     <thead>
                       <tr>
-                        {FIELDS.filter((f) => mapping[f.key] >= 0).map((f) => (
+                        {previewFields.map((f) => (
                           <th key={f.key}>{f.label}</th>
                         ))}
                       </tr>
@@ -182,8 +217,10 @@ export default function ImportModal({ onClose }: Props): React.JSX.Element {
                     <tbody>
                       {mappedRows.slice(0, 4).map((row, i) => (
                         <tr key={i}>
-                          {FIELDS.filter((f) => mapping[f.key] >= 0).map((f) => (
-                            <td key={f.key}>{row[f.key]}</td>
+                          {previewFields.map((f) => (
+                            <td key={f.key}>
+                              {f.key === 'tags' ? row.tags.join(', ') : row[f.key]}
+                            </td>
                           ))}
                         </tr>
                       ))}

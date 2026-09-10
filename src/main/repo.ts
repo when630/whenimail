@@ -1,5 +1,8 @@
 import { getDb } from './db'
+import { pruneAttachments } from './attachments'
 import type {
+  AppSettings,
+  BulkContactPatch,
   Contact,
   ContactInput,
   DraftLog,
@@ -7,6 +10,7 @@ import type {
   EmailTemplate,
   ImportSummary,
   OutlookAdapter,
+  TemplateAttachment,
   TemplateInput
 } from '../shared/types'
 
@@ -67,8 +71,12 @@ function saveTags(contactId: number, tags: string[] | undefined): void {
     const t = getTag.get(name) as { id: number }
     link.run(contactId, t.id)
   }
-  // 어디에도 안 쓰이는 태그 정리
-  db.prepare('DELETE FROM tag WHERE id NOT IN (SELECT DISTINCT tag_id FROM contact_tag)').run()
+  pruneTags()
+}
+
+/** 어디에도 안 쓰이는 태그 정리 */
+function pruneTags(): void {
+  getDb().prepare('DELETE FROM tag WHERE id NOT IN (SELECT DISTINCT tag_id FROM contact_tag)').run()
 }
 
 export function listContacts(search?: string, tag?: string): Contact[] {
@@ -139,6 +147,65 @@ export function updateContact(id: number, input: ContactInput): Contact {
 
 export function deleteContact(id: number): void {
   getDb().prepare('DELETE FROM contact WHERE id = ?').run(id)
+  pruneTags()
+}
+
+/** 여러 명함을 한 트랜잭션으로 삭제. 실제 삭제된 수를 반환 */
+export function deleteContacts(ids: number[]): number {
+  if (ids.length === 0) return 0
+  const db = getDb()
+  const run = db.transaction((targets: number[]) => {
+    const placeholders = targets.map(() => '?').join(',')
+    const info = db.prepare(`DELETE FROM contact WHERE id IN (${placeholders})`).run(...targets)
+    pruneTags()
+    return info.changes
+  })
+  return run(ids)
+}
+
+const BULK_FIELDS = ['company', 'department', 'title', 'phone', 'address', 'website'] as const
+
+/**
+ * 여러 명함에 공통 값을 일괄 적용. 지정된 필드만 덮어쓰고 태그는 추가/제거/교체.
+ * 한 트랜잭션으로 처리하며 수정된 명함 수를 반환한다.
+ */
+export function bulkUpdateContacts(ids: number[], patch: BulkContactPatch): number {
+  if (ids.length === 0) return 0
+  const db = getDb()
+  const fields = BULK_FIELDS.filter((f) => patch.fields[f] !== undefined)
+  const tagPatch = patch.tags
+  if (fields.length === 0 && !tagPatch) return 0
+
+  const update =
+    fields.length > 0
+      ? db.prepare(
+          `UPDATE contact SET ${fields.map((f) => `${f} = @${f}`).join(', ')},
+           updated_at = datetime('now','localtime') WHERE id = @id`
+        )
+      : null
+  const touch = db.prepare(
+    `UPDATE contact SET updated_at = datetime('now','localtime') WHERE id = ?`
+  )
+  const values: Record<string, string> = {}
+  for (const f of fields) values[f] = String(patch.fields[f] ?? '').trim()
+  const patchTags = normalizeTags(tagPatch?.values)
+
+  const run = db.transaction((targets: number[]) => {
+    const existing = getContacts(targets)
+    for (const c of existing) {
+      if (update) update.run({ ...values, id: c.id })
+      if (tagPatch) {
+        let next: string[]
+        if (tagPatch.mode === 'replace') next = patchTags
+        else if (tagPatch.mode === 'remove') next = c.tags.filter((t) => !patchTags.includes(t))
+        else next = [...c.tags, ...patchTags]
+        saveTags(c.id, next)
+        if (!update) touch.run(c.id)
+      }
+    }
+    return existing.length
+  })
+  return run(ids)
 }
 
 /** 최근 초안을 보낸 명함 우선, 그다음 최근 수정 명함 */
@@ -173,7 +240,9 @@ export function importContacts(rows: ContactInput[], policy: DuplicatePolicy): I
         : undefined
       if (existing) {
         if (policy === 'overwrite') {
-          updateContact(existing.id, item)
+          // 파일에 태그 열이 없으면 기존 태그를 지우지 않고 유지
+          const tags = item.tags?.length ? item.tags : (getContacts([existing.id])[0]?.tags ?? [])
+          updateContact(existing.id, { ...item, tags })
           summary.updated += 1
         } else {
           summary.skipped += 1
@@ -188,24 +257,64 @@ export function importContacts(rows: ContactInput[], policy: DuplicatePolicy): I
   return summary
 }
 
+type TemplateRow = Omit<EmailTemplate, 'attachments'> & { attachments: string }
+
+function parseAttachments(json: string): TemplateAttachment[] {
+  try {
+    const arr = JSON.parse(json)
+    if (!Array.isArray(arr)) return []
+    return arr
+      .filter((a) => a && typeof a.path === 'string' && typeof a.name === 'string')
+      .map((a) => ({ name: a.name, path: a.path, size: Number(a.size) || 0 }))
+  } catch {
+    return []
+  }
+}
+
+function rowToTemplate(row: TemplateRow): EmailTemplate {
+  return { ...row, attachments: parseAttachments(row.attachments) }
+}
+
+function serializeAttachments(list: TemplateAttachment[] | undefined): string {
+  return JSON.stringify(
+    (list ?? []).map((a) => ({ name: a.name, path: a.path, size: Number(a.size) || 0 }))
+  )
+}
+
+/** 모든 템플릿이 참조하는 첨부 경로로 앱 데이터 폴더의 첨부 파일을 정리 */
+function pruneTemplateAttachments(): void {
+  const rows = getDb().prepare('SELECT attachments FROM template').all() as {
+    attachments: string
+  }[]
+  pruneAttachments(rows.flatMap((r) => parseAttachments(r.attachments).map((a) => a.path)))
+}
+
 export function listTemplates(): EmailTemplate[] {
-  return getDb()
-    .prepare('SELECT * FROM template ORDER BY last_used_at DESC NULLS LAST, updated_at DESC')
-    .all() as EmailTemplate[]
+  return (
+    getDb()
+      .prepare('SELECT * FROM template ORDER BY last_used_at DESC NULLS LAST, updated_at DESC')
+      .all() as TemplateRow[]
+  ).map(rowToTemplate)
 }
 
 export function getTemplate(id: number): EmailTemplate | undefined {
-  return getDb().prepare('SELECT * FROM template WHERE id = ?').get(id) as
-    | EmailTemplate
-    | undefined
+  const row = getDb().prepare('SELECT * FROM template WHERE id = ?').get(id) as
+    TemplateRow | undefined
+  return row ? rowToTemplate(row) : undefined
 }
 
 export function createTemplate(input: TemplateInput): EmailTemplate {
   const db = getDb()
   if (!input.name?.trim()) throw new Error('템플릿 이름은 필수입니다')
   const info = db
-    .prepare('INSERT INTO template (name, subject_tpl, body_tpl) VALUES (?, ?, ?)')
-    .run(input.name.trim(), input.subject_tpl ?? '', input.body_tpl ?? '')
+    .prepare('INSERT INTO template (name, subject_tpl, body_tpl, attachments) VALUES (?, ?, ?, ?)')
+    .run(
+      input.name.trim(),
+      input.subject_tpl ?? '',
+      input.body_tpl ?? '',
+      serializeAttachments(input.attachments)
+    )
+  pruneTemplateAttachments()
   return getTemplate(Number(info.lastInsertRowid))!
 }
 
@@ -213,14 +322,22 @@ export function updateTemplate(id: number, input: TemplateInput): EmailTemplate 
   const db = getDb()
   if (!input.name?.trim()) throw new Error('템플릿 이름은 필수입니다')
   db.prepare(
-    `UPDATE template SET name = ?, subject_tpl = ?, body_tpl = ?,
+    `UPDATE template SET name = ?, subject_tpl = ?, body_tpl = ?, attachments = ?,
      updated_at = datetime('now','localtime') WHERE id = ?`
-  ).run(input.name.trim(), input.subject_tpl ?? '', input.body_tpl ?? '', id)
+  ).run(
+    input.name.trim(),
+    input.subject_tpl ?? '',
+    input.body_tpl ?? '',
+    serializeAttachments(input.attachments),
+    id
+  )
+  pruneTemplateAttachments()
   return getTemplate(id)!
 }
 
 export function deleteTemplate(id: number): void {
   getDb().prepare('DELETE FROM template WHERE id = ?').run(id)
+  pruneTemplateAttachments()
 }
 
 export function touchTemplateUsed(id: number): void {
@@ -259,4 +376,55 @@ export function listDraftLogs(limit = 200): DraftLog[] {
   return getDb()
     .prepare('SELECT * FROM draft_log ORDER BY id DESC LIMIT ?')
     .all(limit) as DraftLog[]
+}
+
+const DEFAULT_SETTINGS: AppSettings = {
+  outlookMode: 'auto',
+  signatureHtml: '',
+  signatureEnabled: true,
+  defaultCc: '',
+  defaultCcEnabled: true,
+  defaultBcc: '',
+  defaultBccEnabled: true
+}
+
+/** '1'/'0'로 저장된 불리언 설정. 값이 없으면 기본값 */
+const flag = (v: string | undefined, fallback: boolean): boolean =>
+  v === undefined ? fallback : v === '1'
+
+export function getSettings(): AppSettings {
+  const rows = getDb().prepare('SELECT key, value FROM setting').all() as {
+    key: string
+    value: string
+  }[]
+  const map = new Map(rows.map((r) => [r.key, r.value]))
+  const mode = map.get('outlook_mode')
+  return {
+    outlookMode: mode === 'com' || mode === 'eml' ? mode : DEFAULT_SETTINGS.outlookMode,
+    signatureHtml: map.get('signature_html') ?? DEFAULT_SETTINGS.signatureHtml,
+    signatureEnabled: flag(map.get('signature_enabled'), DEFAULT_SETTINGS.signatureEnabled),
+    defaultCc: map.get('default_cc') ?? DEFAULT_SETTINGS.defaultCc,
+    defaultCcEnabled: flag(map.get('default_cc_enabled'), DEFAULT_SETTINGS.defaultCcEnabled),
+    defaultBcc: map.get('default_bcc') ?? DEFAULT_SETTINGS.defaultBcc,
+    defaultBccEnabled: flag(map.get('default_bcc_enabled'), DEFAULT_SETTINGS.defaultBccEnabled)
+  }
+}
+
+export function saveSettings(input: AppSettings): AppSettings {
+  const db = getDb()
+  const upsert = db.prepare(
+    'INSERT INTO setting (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
+  )
+  const mode =
+    input.outlookMode === 'com' || input.outlookMode === 'eml' ? input.outlookMode : 'auto'
+  db.transaction(() => {
+    upsert.run('outlook_mode', mode)
+    upsert.run('signature_html', String(input.signatureHtml ?? ''))
+    upsert.run('signature_enabled', input.signatureEnabled === false ? '0' : '1')
+    upsert.run('default_cc', String(input.defaultCc ?? '').trim())
+    upsert.run('default_cc_enabled', input.defaultCcEnabled === false ? '0' : '1')
+    upsert.run('default_bcc', String(input.defaultBcc ?? '').trim())
+    upsert.run('default_bcc_enabled', input.defaultBccEnabled === false ? '0' : '1')
+  })()
+  return getSettings()
 }

@@ -1,7 +1,10 @@
 import type {
+  AppSettings,
+  BulkContactPatch,
   Contact,
   ContactInput,
   DraftLog,
+  DraftOptions,
   DraftResult,
   DuplicatePolicy,
   EmailTemplate,
@@ -10,6 +13,7 @@ import type {
   OcrScanResult,
   OutlookAdapter,
   TagCount,
+  TemplateAttachment,
   TemplateInput,
   UpdateState
 } from './types'
@@ -22,6 +26,10 @@ export interface WhenimailApi {
     create: (input: ContactInput) => Promise<Contact>
     update: (id: number, input: ContactInput) => Promise<Contact>
     remove: (id: number) => Promise<void>
+    /** 여러 명함 일괄 삭제. 삭제된 수 반환 */
+    removeMany: (ids: number[]) => Promise<number>
+    /** 여러 명함에 공통 값 일괄 적용. 수정된 수 반환 */
+    bulkUpdate: (ids: number[], patch: BulkContactPatch) => Promise<number>
   }
   tags: {
     list: () => Promise<TagCount[]>
@@ -44,15 +52,28 @@ export interface WhenimailApi {
     create: (input: TemplateInput) => Promise<EmailTemplate>
     update: (id: number, input: TemplateInput) => Promise<EmailTemplate>
     remove: (id: number) => Promise<void>
+    /** 첨부 파일 선택 → 앱 데이터 폴더로 복사. 취소하면 null */
+    pickAttachments: () => Promise<TemplateAttachment[] | null>
   }
   drafts: {
-    create: (contactIds: number[], templateId: number) => Promise<DraftResult[]>
+    create: (
+      contactIds: number[],
+      templateId: number,
+      options?: DraftOptions
+    ) => Promise<DraftResult[]>
     history: () => Promise<DraftLog[]>
   }
   system: {
     version: () => Promise<string>
+    /** 설정을 반영한 실제 사용 어댑터 */
     outlookMode: () => Promise<OutlookAdapter>
+    /** 설치 여부로 감지된 어댑터 (설정 무시) */
+    outlookDetected: () => Promise<OutlookAdapter>
     openDataFolder: () => Promise<string>
+  }
+  settings: {
+    get: () => Promise<AppSettings>
+    save: (input: AppSettings) => Promise<AppSettings>
   }
   update: {
     /** 현재 업데이트 상태 조회 */

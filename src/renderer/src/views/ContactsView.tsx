@@ -3,18 +3,20 @@ import {
   ContactRound,
   Image as ImageIcon,
   Pencil,
+  PencilRuler,
   Plus,
   Search,
   SendHorizontal,
   Trash2,
   Upload
 } from 'lucide-react'
-import type { Contact, ContactInput, TagCount } from '../../../shared/types'
+import type { BulkContactPatch, Contact, ContactInput, TagCount } from '../../../shared/types'
 import Avatar from '../components/Avatar'
 import { useDialog } from '../components/dialogs'
 import ContactForm from './ContactForm'
 import ComposeModal from './ComposeModal'
 import ImportModal from './ImportModal'
+import BulkEditModal from './BulkEditModal'
 
 export default function ContactsView({
   newContactSignal = 0,
@@ -31,6 +33,7 @@ export default function ContactsView({
   const [editing, setEditing] = useState<Contact | 'new' | null>(null)
   const [composeTargets, setComposeTargets] = useState<Contact[] | null>(null)
   const [importing, setImporting] = useState(false)
+  const [bulkEditing, setBulkEditing] = useState(false)
   const { confirm, toast } = useDialog()
 
   const reload = useCallback(async (q?: string, tag?: string | null) => {
@@ -98,6 +101,41 @@ export default function ContactsView({
     toast('삭제되었습니다')
   }
 
+  /** 현재 목록에 보이는 선택 명함만 일괄 처리 대상 (필터로 숨은 것은 제외) */
+  const removeMany = async (targets: Contact[]): Promise<void> => {
+    if (targets.length === 0) return
+    const ok = await confirm({
+      title: '명함 일괄 삭제',
+      message: `선택한 명함 ${targets.length}개를 삭제할까요?
+삭제한 명함은 되돌릴 수 없습니다.`,
+      confirmLabel: `${targets.length}개 삭제`,
+      danger: true
+    })
+    if (!ok) return
+    try {
+      const removed = await window.api.contacts.removeMany(targets.map((c) => c.id))
+      setSelected(new Set())
+      await reload(search, activeTag)
+      toast(`${removed}개 명함을 삭제했습니다`)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : String(e), 'error')
+    }
+  }
+
+  const applyBulk = async (targets: Contact[], patch: BulkContactPatch): Promise<void> => {
+    try {
+      const updated = await window.api.contacts.bulkUpdate(
+        targets.map((c) => c.id),
+        patch
+      )
+      setBulkEditing(false)
+      await reload(search, activeTag)
+      toast(`${updated}개 명함을 수정했습니다`)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : String(e), 'error')
+    }
+  }
+
   const openCompose = (targets: Contact[]): void => {
     const withEmail = targets.filter((c) => c.email.trim())
     if (withEmail.length === 0) {
@@ -145,6 +183,24 @@ export default function ContactsView({
           </button>
         </div>
       </header>
+
+      {selectedContacts.length > 0 && (
+        <div className="selection-bar" role="toolbar" aria-label="선택한 명함 작업">
+          <strong>{selectedContacts.length}개 선택</strong>
+          <span className="spacer" />
+          <button className="btn sm" onClick={() => setBulkEditing(true)}>
+            <PencilRuler size={14} />
+            일괄 수정
+          </button>
+          <button className="btn sm danger" onClick={() => removeMany(selectedContacts)}>
+            <Trash2 size={14} />
+            삭제
+          </button>
+          <button className="btn ghost sm" onClick={() => setSelected(new Set())}>
+            선택 해제
+          </button>
+        </div>
+      )}
 
       {allTags.length > 0 && (
         <div className="tag-filter">
@@ -241,9 +297,7 @@ export default function ContactsView({
                         {t}
                       </span>
                     ))}
-                    {c.tags.length > 3 && (
-                      <span className="muted">+{c.tags.length - 3}</span>
-                    )}
+                    {c.tags.length > 3 && <span className="muted">+{c.tags.length - 3}</span>}
                   </td>
                   <td className="col-actions">
                     <button
@@ -285,6 +339,14 @@ export default function ContactsView({
       )}
       {composeTargets && (
         <ComposeModal contacts={composeTargets} onClose={() => setComposeTargets(null)} />
+      )}
+      {bulkEditing && selectedContacts.length > 0 && (
+        <BulkEditModal
+          count={selectedContacts.length}
+          tagOptions={allTags.map((t) => t.name)}
+          onApply={(patch) => applyBulk(selectedContacts, patch)}
+          onClose={() => setBulkEditing(false)}
+        />
       )}
       {importing && (
         <ImportModal

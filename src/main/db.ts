@@ -87,4 +87,18 @@ function migrate(db: Database.Database): void {
       PRIMARY KEY (contact_id, tag_id)
     );
   `)
+
+  // v5: 템플릿 첨부 파일 (JSON 배열)
+  const templateCols = db.pragma('table_info(template)') as { name: string }[]
+  if (!templateCols.some((c) => c.name === 'attachments')) {
+    db.exec(`ALTER TABLE template ADD COLUMN attachments TEXT NOT NULL DEFAULT '[]'`)
+  }
+
+  // v4: 앱 설정 (Outlook 연동 방식, 서명 등) — key/value
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS setting (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    );
+  `)
 }

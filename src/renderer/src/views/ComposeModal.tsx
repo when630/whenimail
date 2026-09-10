@@ -5,13 +5,21 @@ import {
   ChevronRight,
   Loader2,
   MailX,
+  Paperclip,
   SendHorizontal,
   TriangleAlert,
   X,
   XCircle
 } from 'lucide-react'
-import type { Contact, DraftResult, EmailTemplate } from '../../../shared/types'
+import type {
+  AppSettings,
+  Contact,
+  DraftResult,
+  EmailTemplate,
+  OutlookAdapter
+} from '../../../shared/types'
 import { isHtmlBody, renderTemplate } from '../../../shared/render'
+import { invalidAddresses, parseAddressList } from '../../../shared/address'
 import { useDialog } from '../components/dialogs'
 
 interface Props {
@@ -29,6 +37,12 @@ export default function ComposeModal({
   const [templates, setTemplates] = useState<EmailTemplate[] | null>(null)
   const [templateId, setTemplateId] = useState<number | null>(null)
   const [previewIdx, setPreviewIdx] = useState(0)
+  const [cc, setCc] = useState('')
+  const [bcc, setBcc] = useState('')
+  const [addressBook, setAddressBook] = useState<string[]>([])
+  const [settings, setSettings] = useState<AppSettings | null>(null)
+  const [includeSignature, setIncludeSignature] = useState(true)
+  const [outlookMode, setOutlookMode] = useState<OutlookAdapter | null>(null)
   const [sending, setSending] = useState(false)
   const [results, setResults] = useState<DraftResult[] | null>(null)
   const { toast } = useDialog()
@@ -39,13 +53,43 @@ export default function ComposeModal({
       const preferred = list.find((t) => t.id === initialTemplateId) ?? list[0]
       if (preferred) setTemplateId(preferred.id)
     })
+    // 설정의 기본 참조/숨은 참조(켜진 것만)로 미리 채우고, 서명 포함 여부도 설정을 따른다
+    window.api.settings
+      .get()
+      .then((s) => {
+        setSettings(s)
+        if (s.defaultCcEnabled) setCc(s.defaultCc)
+        if (s.defaultBccEnabled) setBcc(s.defaultBcc)
+        setIncludeSignature(s.signatureEnabled)
+      })
+      .catch(() => undefined)
+    window.api.system
+      .outlookMode()
+      .then(setOutlookMode)
+      .catch(() => undefined)
+    // 참조 입력 자동완성용 — 이메일 있는 명함만
+    window.api.contacts
+      .list()
+      .then((all) => setAddressBook(all.filter((c) => c.email.trim()).map((c) => c.email.trim())))
+      .catch(() => undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const targets = useMemo(() => contacts.filter((c) => c.email.trim()), [contacts])
   const skipped = contacts.length - targets.length
-  const template = templates?.find((t) => t.id === templateId) ?? null
+  const template = useMemo(
+    () => templates?.find((t) => t.id === templateId) ?? null,
+    [templates, templateId]
+  )
   const previewContact = targets[Math.min(previewIdx, targets.length - 1)] ?? null
+
+  const ccList = useMemo(() => parseAddressList(cc), [cc])
+  const bccList = useMemo(() => parseAddressList(bcc), [bcc])
+  const ccInvalid = useMemo(() => invalidAddresses(cc), [cc])
+  const bccInvalid = useMemo(() => invalidAddresses(bcc), [bcc])
+  const addressError = ccInvalid.length > 0 || bccInvalid.length > 0
+  const hasSignature = Boolean(settings?.signatureHtml.trim())
+  const attachments = template?.attachments ?? []
 
   const preview = useMemo(() => {
     if (!template || !previewContact) return null
@@ -55,13 +99,14 @@ export default function ComposeModal({
   }, [template, previewContact])
 
   const createDrafts = async (): Promise<void> => {
-    if (!template) return
+    if (!template || addressError) return
     setSending(true)
     try {
       setResults(
         await window.api.drafts.create(
           targets.map((c) => c.id),
-          template.id
+          template.id,
+          { cc, bcc, includeSignature: hasSignature ? includeSignature : undefined }
         )
       )
     } catch (e) {
@@ -131,6 +176,59 @@ export default function ComposeModal({
               </div>
             </div>
 
+            <div className="compose-cc">
+              <label className="form-field">
+                <span>
+                  참조 (CC) <em className="muted">— 쉼표·세미콜론으로 구분, 모든 초안에 공통</em>
+                </span>
+                <input
+                  list="compose-address-book"
+                  placeholder="예: team@company.com; manager@company.com"
+                  value={cc}
+                  onChange={(e) => setCc(e.target.value)}
+                  aria-invalid={ccInvalid.length > 0}
+                />
+                {ccInvalid.length > 0 && (
+                  <span className="field-error">
+                    <TriangleAlert size={13} />
+                    올바르지 않은 주소: {ccInvalid.join(', ')}
+                  </span>
+                )}
+              </label>
+              <label className="form-field">
+                <span>숨은 참조 (BCC)</span>
+                <input
+                  list="compose-address-book"
+                  placeholder="예: me@company.com"
+                  value={bcc}
+                  onChange={(e) => setBcc(e.target.value)}
+                  aria-invalid={bccInvalid.length > 0}
+                />
+                {bccInvalid.length > 0 && (
+                  <span className="field-error">
+                    <TriangleAlert size={13} />
+                    올바르지 않은 주소: {bccInvalid.join(', ')}
+                  </span>
+                )}
+              </label>
+              <datalist id="compose-address-book">
+                {addressBook.map((email) => (
+                  <option key={email} value={email} />
+                ))}
+              </datalist>
+            </div>
+
+            {hasSignature && (
+              <label className="compose-toggle">
+                <input
+                  type="checkbox"
+                  checked={includeSignature}
+                  onChange={(e) => setIncludeSignature(e.target.checked)}
+                />
+                <span>본문 아래에 서명 붙이기</span>
+              </label>
+            )}
+
             {targets.length > 1 && (
               <div className="preview-nav">
                 <button
@@ -163,10 +261,35 @@ export default function ComposeModal({
                     {previewContact.name} &lt;{previewContact.email}&gt;
                   </span>
                 </div>
+                {ccList.length > 0 && (
+                  <div className="preview-row">
+                    <span className="preview-label">참조</span>
+                    <span>{ccList.join(', ')}</span>
+                  </div>
+                )}
+                {bccList.length > 0 && (
+                  <div className="preview-row">
+                    <span className="preview-label">숨은 참조</span>
+                    <span>{bccList.join(', ')}</span>
+                  </div>
+                )}
                 <div className="preview-row">
                   <span className="preview-label">제목</span>
                   <span>{preview.subject.text}</span>
                 </div>
+                {attachments.length > 0 && (
+                  <div className="preview-row">
+                    <span className="preview-label">첨부</span>
+                    <span className="preview-attach">
+                      {attachments.map((a) => (
+                        <span key={a.path} className="badge neutral">
+                          <Paperclip size={11} />
+                          {a.name}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                )}
                 {isHtmlBody(preview.body.text) ? (
                   <div
                     className="preview-body preview-html"
@@ -175,6 +298,17 @@ export default function ComposeModal({
                   />
                 ) : (
                   <pre className="preview-body">{preview.body.text}</pre>
+                )}
+                {attachments.length > 0 && outlookMode === 'eml' && (
+                  <ul className="warning-list">
+                    <li>
+                      <TriangleAlert size={14} />
+                      <span>
+                        새 Outlook은 .eml 초안을 열 때 첨부를 놓치는 경우가 보고되어 있습니다.
+                        초안에서 첨부가 보이는지 확인하세요.
+                      </span>
+                    </li>
+                  </ul>
                 )}
                 {preview.warnings.length > 0 && (
                   <ul className="warning-list">
@@ -201,7 +335,7 @@ export default function ComposeModal({
               <button
                 className="btn primary"
                 onClick={createDrafts}
-                disabled={sending || !template || targets.length === 0}
+                disabled={sending || !template || targets.length === 0 || addressError}
               >
                 {sending ? (
                   <>

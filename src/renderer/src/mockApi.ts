@@ -1,5 +1,5 @@
 import type { WhenimailApi } from '../../shared/api'
-import type { Contact, DraftLog, EmailTemplate } from '../../shared/types'
+import type { AppSettings, Contact, DraftLog, EmailTemplate } from '../../shared/types'
 
 /**
  * preload 없이(순수 브라우저에서) 렌더러를 열었을 때만 활성화되는 목 API.
@@ -69,6 +69,7 @@ export function installMockApiIfNeeded(): void {
       subject_tpl: '[{{회사|whenimail}}] {{이름}}님, 반갑습니다',
       body_tpl:
         '{{이름|고객}}님, 안녕하세요.\n\n지난 미팅에서 인사드린 whenimail입니다.\n{{회사|귀사}}의 {{직함|담당자}}님께 도움이 될 자료를 보내드립니다.\n\n감사합니다.',
+      attachments: [{ name: '회사소개서.pdf', path: '/mock/att/회사소개서.pdf', size: 1843200 }],
       last_used_at: now,
       created_at: now,
       updated_at: now
@@ -87,6 +88,16 @@ export function installMockApiIfNeeded(): void {
       created_at: now
     }
   ]
+
+  let settings: AppSettings = {
+    outlookMode: 'auto',
+    signatureHtml: '<p>홍길동 | whenimail</p>',
+    signatureEnabled: true,
+    defaultCc: 'team@whenimail.example',
+    defaultCcEnabled: true,
+    defaultBcc: '',
+    defaultBccEnabled: false
+  }
 
   const api: WhenimailApi = {
     tags: {
@@ -107,7 +118,9 @@ export function installMockApiIfNeeded(): void {
       recent: async (limit = 5) => contacts.slice(0, limit),
       create: async (input) => ({ ...contacts[0], ...input, id: Date.now() }),
       update: async (id, input) => ({ ...contacts[0], ...input, id }),
-      remove: async () => undefined
+      remove: async () => undefined,
+      removeMany: async (ids) => ids.length,
+      bulkUpdate: async (ids) => ids.length
     },
     import: {
       pick: async () => ({
@@ -130,7 +143,10 @@ export function installMockApiIfNeeded(): void {
       list: async () => templates,
       create: async (input) => ({ ...templates[0], ...input, id: Date.now() }),
       update: async (id, input) => ({ ...templates[0], ...input, id }),
-      remove: async () => undefined
+      remove: async () => undefined,
+      pickAttachments: async () => [
+        { name: '제품카탈로그.pdf', path: '/mock/att/제품카탈로그.pdf', size: 524288 }
+      ]
     },
     drafts: {
       create: async (contactIds) =>
@@ -159,15 +175,23 @@ export function installMockApiIfNeeded(): void {
             '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#eef2ff"/><text x="20" y="60" font-size="24" fill="#3730a3">오세진 차장</text><text x="20" y="100" font-size="14" fill="#667085">(주)가온누리</text></svg>'
           ),
         rawText: '(주)가온누리\n오세진 차장\nsj.oh@gaon.example\nM. 010-7777-8888'
-      }),
+      })
     },
     files: {
       imageDataUrl: async () => ''
     },
     system: {
       version: async () => '0.0.0-dev',
-      outlookMode: async () => 'eml',
+      outlookMode: async () => (settings.outlookMode === 'com' ? 'com' : 'eml'),
+      outlookDetected: async () => 'eml',
       openDataFolder: async () => ''
+    },
+    settings: {
+      get: async () => settings,
+      save: async (input) => {
+        settings = { ...input }
+        return settings
+      }
     },
     update: {
       state: async () => ({ status: 'ready', version: '9.9.9' }),

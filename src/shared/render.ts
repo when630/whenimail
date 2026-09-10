@@ -73,18 +73,29 @@ export function htmlToText(html: string): string {
 
 const BODY_STYLE = `font-family:'Malgun Gothic',sans-serif;font-size:10.5pt;line-height:1.6;`
 
-/** 본문을 Outlook용 HTML로 변환 — 리치 텍스트는 그대로, 플레인 텍스트는 문단으로 */
-export function bodyToHtml(body: string): string {
-  if (isHtmlBody(body)) {
-    return `<html><body style="${BODY_STYLE}">${body}</body></html>`
-  }
-  const escaped = body
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-  const paragraphs = escaped
-    .split(/\r?\n/)
-    .map((line) => (line.trim() === '' ? '<p>&nbsp;</p>' : `<p>${line}</p>`))
-    .join('\n')
-  return `<html><body style="${BODY_STYLE}">${paragraphs}</body></html>`
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/**
+ * 본문을 Outlook용 HTML 조각(<div>)으로 — 리치 텍스트는 그대로, 플레인 텍스트는 문단으로.
+ * 서명이 있으면 본문 아래에 구분 여백을 두고 붙인다.
+ * COM 어댑터는 이 조각을 Outlook이 만든 <body> 안(기본 서명 위)에 끼워 넣는다.
+ */
+export function bodyToHtmlFragment(body: string, signatureHtml = ''): string {
+  const content = isHtmlBody(body)
+    ? body
+    : escapeHtml(body)
+        .split(/\r?\n/)
+        .map((line) => (line.trim() === '' ? '<p>&nbsp;</p>' : `<p>${line}</p>`))
+        .join('\n')
+  const signature = signatureHtml.trim()
+    ? `<p>&nbsp;</p><div class="whenimail-signature">${signatureHtml}</div>`
+    : ''
+  return `<div style="${BODY_STYLE}">${content}${signature}</div>`
+}
+
+/** 본문(+서명)을 완전한 HTML 문서로 — .eml 어댑터용 */
+export function bodyToHtml(body: string, signatureHtml = ''): string {
+  return `<html><body style="${BODY_STYLE}">${bodyToHtmlFragment(body, signatureHtml)}</body></html>`
 }

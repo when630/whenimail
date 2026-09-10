@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bodyToHtml, htmlToText, isHtmlBody, renderTemplate } from '../render'
+import { bodyToHtml, bodyToHtmlFragment, htmlToText, isHtmlBody, renderTemplate } from '../render'
 import type { Contact } from '../types'
 
 const contact: Contact = {
@@ -83,5 +83,36 @@ describe('isHtmlBody / htmlToText', () => {
     expect(htmlToText('<div>안녕<br>하세요</div><ul><li>항목</li></ul>&amp;')).toBe(
       '안녕\n하세요\n항목\n\n&'
     )
+  })
+})
+
+describe('bodyToHtmlFragment', () => {
+  it('플레인 텍스트는 문단으로 감싸고 서명이 없으면 서명 블록을 만들지 않는다', () => {
+    const html = bodyToHtmlFragment('안녕하세요\n\n감사합니다')
+    expect(html).toContain('<p>안녕하세요</p>')
+    expect(html).toContain('<p>&nbsp;</p>')
+    expect(html).toContain('<p>감사합니다</p>')
+    expect(html).not.toContain('whenimail-signature')
+    expect(html.startsWith('<div style=')).toBe(true)
+  })
+
+  it('서명은 본문 뒤에 붙는다', () => {
+    const html = bodyToHtmlFragment('<p>본문</p>', '<p>홍길동</p>')
+    const body = html.indexOf('본문')
+    const sig = html.indexOf('whenimail-signature')
+    expect(body).toBeGreaterThan(-1)
+    expect(sig).toBeGreaterThan(body)
+    expect(html).toContain('<p>홍길동</p>')
+  })
+
+  it('공백만 있는 서명은 무시한다', () => {
+    expect(bodyToHtmlFragment('x', '   ')).not.toContain('whenimail-signature')
+  })
+
+  it('bodyToHtml은 조각을 html/body로 감싼다', () => {
+    const html = bodyToHtml('x', '<b>s</b>')
+    expect(html.startsWith('<html><body')).toBe(true)
+    expect(html).toContain('<b>s</b>')
+    expect(html.endsWith('</body></html>')).toBe(true)
   })
 })

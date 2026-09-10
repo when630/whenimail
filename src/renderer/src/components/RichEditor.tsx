@@ -37,6 +37,33 @@ function toEditorHtml(value: string): string {
     .replace(/\n/g, '<br>')
 }
 
+/** Outlook 수신자 PC에도 있을 법한 글꼴 — 값은 Windows 영문 패밀리명 */
+const FONT_FAMILIES: { label: string; value: string }[] = [
+  { label: '맑은 고딕', value: 'Malgun Gothic' },
+  { label: '굴림', value: 'Gulim' },
+  { label: '돋움', value: 'Dotum' },
+  { label: '바탕', value: 'Batang' },
+  { label: '나눔고딕', value: 'NanumGothic' },
+  { label: 'Arial', value: 'Arial' },
+  { label: 'Calibri', value: 'Calibri' },
+  { label: 'Segoe UI', value: 'Segoe UI' },
+  { label: 'Verdana', value: 'Verdana' },
+  { label: 'Georgia', value: 'Georgia' },
+  { label: 'Times New Roman', value: 'Times New Roman' },
+  { label: 'Courier New', value: 'Courier New' }
+]
+
+/** queryCommandValue('fontName') 결과("\"Malgun Gothic\", sans-serif" 등)를 목록 값으로 정규화 */
+function matchFontFamily(raw: string): string {
+  const first =
+    raw
+      .split(',')[0]
+      ?.trim()
+      .replace(/^["']|["']$/g, '') ?? ''
+  const hit = FONT_FAMILIES.find((f) => f.value.toLowerCase() === first.toLowerCase())
+  return hit?.value ?? ''
+}
+
 /** Word/Outlook과 같은 pt 단위 크기 목록 */
 const FONT_SIZES = ['8', '9', '10', '10.5', '11', '12', '14', '16', '18', '20', '24', '28', '36']
 
@@ -83,6 +110,7 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
   const lastHtml = useRef('')
   const savedRange = useRef<Range | null>(null)
   const [active, setActive] = useState<Record<string, boolean>>({})
+  const [fontFamily, setFontFamily] = useState('')
   const [linkOpen, setLinkOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
 
@@ -111,6 +139,11 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
         }
       }
       setActive(next)
+      try {
+        setFontFamily(matchFontFamily(document.queryCommandValue('fontName')))
+      } catch {
+        setFontFamily('')
+      }
     }
     document.addEventListener('selectionchange', onSelectionChange)
     return () => document.removeEventListener('selectionchange', onSelectionChange)
@@ -171,6 +204,22 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
     emit()
   }
 
+  /**
+   * execCommand('fontName')은 기본적으로 <font face>를 만들므로,
+   * styleWithCSS를 잠시 켜서 <span style="font-family"> 형태로 남긴다.
+   */
+  const applyFontFamily = (family: string): void => {
+    const el = divRef.current
+    if (!el) return
+    el.focus()
+    restoreSelection()
+    document.execCommand('styleWithCSS', false, 'true')
+    document.execCommand('fontName', false, family)
+    document.execCommand('styleWithCSS', false, 'false')
+    setFontFamily(family)
+    emit()
+  }
+
   useImperativeHandle(ref, () => ({
     insertText: (text: string) => {
       const el = divRef.current
@@ -191,11 +240,7 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
     restoreSelection()
     const sel = window.getSelection()
     if (!sel || sel.isCollapsed) {
-      document.execCommand(
-        'insertHTML',
-        false,
-        `<a href="${href}" target="_blank">${href}</a>`
-      )
+      document.execCommand('insertHTML', false, `<a href="${href}" target="_blank">${href}</a>`)
     } else {
       document.execCommand('createLink', false, href)
     }
@@ -225,6 +270,25 @@ const RichEditor = forwardRef<RichEditorHandle, Props>(function RichEditor(
       <div className="rich-toolbar">
         {renderGroup(GROUP_HISTORY)}
         <span className="rich-sep" />
+        <select
+          className="rich-select rich-select-font"
+          title="글꼴"
+          aria-label="글꼴"
+          value={fontFamily}
+          onMouseDown={saveSelection}
+          onChange={(e) => {
+            if (e.target.value) applyFontFamily(e.target.value)
+          }}
+        >
+          <option value="" disabled>
+            글꼴
+          </option>
+          {FONT_FAMILIES.map((f) => (
+            <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+              {f.label}
+            </option>
+          ))}
+        </select>
         <select
           className="rich-select"
           title="글자 크기 (pt)"

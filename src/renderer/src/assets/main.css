@@ -205,14 +205,8 @@ body,
 
 body {
   font-family:
-    'Pretendard Variable',
-    Pretendard,
-    'Segoe UI Variable Text',
-    'Segoe UI',
-    'Malgun Gothic',
-    'Apple SD Gothic Neo',
-    system-ui,
-    sans-serif;
+    'Pretendard Variable', Pretendard, 'Segoe UI Variable Text', 'Segoe UI', 'Malgun Gothic',
+    'Apple SD Gothic Neo', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   color: var(--text);
@@ -1794,4 +1788,379 @@ kbd {
 .segment button.active {
   background: var(--primary);
   color: #fff;
+}
+
+/* ---------- 선택 명함 일괄 작업 바 ---------- */
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background: var(--primary-soft);
+  color: var(--primary-soft-text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  animation: fade-in 0.15s ease;
+}
+
+.selection-bar strong {
+  font-weight: 600;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 일괄 수정 모달 ---------- */
+.bulk-hint {
+  margin: -6px 0 14px;
+  font-size: 13px;
+}
+
+.bulk-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bulk-field {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  transition:
+    background var(--ease),
+    border-color var(--ease);
+}
+
+.bulk-field.on {
+  background: var(--surface);
+  border-color: var(--primary);
+}
+
+.bulk-field input:disabled,
+.bulk-field select:disabled {
+  opacity: 0.55;
+}
+
+.bulk-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.bulk-field.on .bulk-check {
+  color: var(--text);
+}
+
+.bulk-field-tags {
+  grid-template-columns: 150px 1fr;
+}
+
+.bulk-field-tags .field-error {
+  grid-column: 1 / -1;
+}
+
+.bulk-tags-row {
+  display: flex;
+  gap: 8px;
+}
+
+.bulk-tags-row select {
+  flex: 0 0 auto;
+}
+
+.bulk-tags-row input {
+  flex: 1;
+}
+
+/* ---------- 참조/숨은 참조 ---------- */
+.compose-cc {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.compose-cc .form-field > span em {
+  font-style: normal;
+  font-weight: 400;
+}
+
+.field-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--danger);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+/* ---------- 설정: Outlook·서명 ---------- */
+.settings-status {
+  margin-top: 12px !important;
+}
+
+.settings-warn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warn);
+  font-size: 13px;
+}
+
+.signature-editor {
+  display: flex;
+  margin-top: 6px;
+}
+
+.signature-editor .rich-wrap {
+  flex: 1;
+}
+
+.signature-editor .rich-editor {
+  min-height: 130px;
+  max-height: 260px;
+}
+
+.settings-actions-end {
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 10px;
+}
+
+/* ---------- 리치 에디터 글꼴 셀렉트 ---------- */
+.rich-select-font {
+  max-width: 130px;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 네이티브 컨트롤 커스텀: select 화살표·datalist·라디오 ---------- */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  cursor: pointer;
+}
+
+[data-theme='dark'] select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239ba1b0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+}
+
+select:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* 리치 에디터 툴바 셀렉트 — 앞선 background shorthand가 화살표를 지우므로 다시 지정 */
+.rich-select,
+.rich-select:hover {
+  padding-right: 22px;
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  background-size: 12px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+}
+
+.rich-select:hover {
+  background-color: var(--surface-sunken);
+}
+
+[data-theme='dark'] .rich-select,
+[data-theme='dark'] .rich-select:hover {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239ba1b0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+}
+
+/* datalist 자동완성 입력의 기본 ▼ 표시 제거 (제안 목록은 그대로 동작) */
+input[list]::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+input[type='radio'] {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* ---------- 설정: 메일 기본값 / 가져오기: 일괄 태그 ---------- */
+.settings-subtitle {
+  margin: 16px 0 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.settings-section .compose-cc {
+  margin-bottom: 4px;
+}
+
+.import-extra-tags {
+  margin-bottom: 14px;
+}
+
+/* ---------- on/off 스위치 ---------- */
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 4px 2px 2px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.switch-knob {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background var(--ease);
+  flex-shrink: 0;
+}
+
+.switch-knob::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.25);
+  transition: transform 160ms var(--ease-out);
+}
+
+.switch.on .switch-knob {
+  background: var(--primary);
+}
+
+.switch.on .switch-knob::after {
+  transform: translateX(13px);
+}
+
+.switch.on {
+  color: var(--primary-soft-text);
+}
+
+.switch:focus-visible {
+  outline: none;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+.field-off input,
+.field-off .rich-wrap {
+  opacity: 0.5;
+}
+
+.compose-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* ---------- 템플릿 첨부 ---------- */
+.attach-list {
+  list-style: none;
+  margin: 6px 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attach-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  font-size: 13px;
+}
+
+.attach-item > svg {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.attach-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hint-inline {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400 !important;
+}
+
+.side-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+  vertical-align: middle;
+}
+
+.preview-attach {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preview-attach .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }

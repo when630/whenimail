@@ -1,9 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type {
+  AppSettings,
+  BulkContactPatch,
   Contact,
   ContactInput,
   DraftLog,
+  DraftOptions,
   DraftResult,
   DuplicatePolicy,
   EmailTemplate,
@@ -12,6 +15,7 @@ import type {
   OcrScanResult,
   OutlookAdapter,
   TagCount,
+  TemplateAttachment,
   TemplateInput,
   UpdateState
 } from '../shared/types'
@@ -28,7 +32,10 @@ const api: WhenimailApi = {
     create: (input: ContactInput): Promise<Contact> => ipcRenderer.invoke('contacts:create', input),
     update: (id: number, input: ContactInput): Promise<Contact> =>
       ipcRenderer.invoke('contacts:update', id, input),
-    remove: (id: number): Promise<void> => ipcRenderer.invoke('contacts:delete', id)
+    remove: (id: number): Promise<void> => ipcRenderer.invoke('contacts:delete', id),
+    removeMany: (ids: number[]): Promise<number> => ipcRenderer.invoke('contacts:deleteMany', ids),
+    bulkUpdate: (ids: number[], patch: BulkContactPatch): Promise<number> =>
+      ipcRenderer.invoke('contacts:bulkUpdate', ids, patch)
   },
   import: {
     pick: (): Promise<ImportParseResult | null> => ipcRenderer.invoke('import:pick'),
@@ -39,8 +46,7 @@ const api: WhenimailApi = {
     scanCard: (): Promise<OcrScanResult | null> => ipcRenderer.invoke('ocr:scanCard')
   },
   files: {
-    imageDataUrl: (path: string): Promise<string> =>
-      ipcRenderer.invoke('files:imageDataUrl', path)
+    imageDataUrl: (path: string): Promise<string> => ipcRenderer.invoke('files:imageDataUrl', path)
   },
   templates: {
     list: (): Promise<EmailTemplate[]> => ipcRenderer.invoke('templates:list'),
@@ -48,17 +54,28 @@ const api: WhenimailApi = {
       ipcRenderer.invoke('templates:create', input),
     update: (id: number, input: TemplateInput): Promise<EmailTemplate> =>
       ipcRenderer.invoke('templates:update', id, input),
-    remove: (id: number): Promise<void> => ipcRenderer.invoke('templates:delete', id)
+    remove: (id: number): Promise<void> => ipcRenderer.invoke('templates:delete', id),
+    pickAttachments: (): Promise<TemplateAttachment[] | null> =>
+      ipcRenderer.invoke('templates:pickAttachments')
   },
   drafts: {
-    create: (contactIds: number[], templateId: number): Promise<DraftResult[]> =>
-      ipcRenderer.invoke('drafts:create', contactIds, templateId),
+    create: (
+      contactIds: number[],
+      templateId: number,
+      options?: DraftOptions
+    ): Promise<DraftResult[]> =>
+      ipcRenderer.invoke('drafts:create', contactIds, templateId, options),
     history: (): Promise<DraftLog[]> => ipcRenderer.invoke('drafts:history')
   },
   system: {
     version: (): Promise<string> => ipcRenderer.invoke('system:version'),
     outlookMode: (): Promise<OutlookAdapter> => ipcRenderer.invoke('system:outlookMode'),
+    outlookDetected: (): Promise<OutlookAdapter> => ipcRenderer.invoke('system:outlookDetected'),
     openDataFolder: (): Promise<string> => ipcRenderer.invoke('system:openDataFolder')
+  },
+  settings: {
+    get: (): Promise<AppSettings> => ipcRenderer.invoke('settings:get'),
+    save: (input: AppSettings): Promise<AppSettings> => ipcRenderer.invoke('settings:save', input)
   },
   update: {
     state: (): Promise<UpdateState> => ipcRenderer.invoke('update:state'),

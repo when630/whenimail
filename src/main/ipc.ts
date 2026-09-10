@@ -1,12 +1,22 @@
 import { app, ipcMain, shell } from 'electron'
 import path from 'node:path'
-import { renderTemplate, bodyToHtml, htmlToText, isHtmlBody } from '../shared/render'
-import type { ContactInput, DraftResult, DuplicatePolicy, TemplateInput } from '../shared/types'
+import { renderTemplate, bodyToHtmlFragment, htmlToText, isHtmlBody } from '../shared/render'
+import { parseAddressList } from '../shared/address'
+import type {
+  AppSettings,
+  BulkContactPatch,
+  ContactInput,
+  DraftOptions,
+  DraftResult,
+  DuplicatePolicy,
+  TemplateInput
+} from '../shared/types'
 import * as repo from './repo'
-import { detectOutlookMode, openDraft } from './outlook'
+import { detectOutlookMode, effectiveOutlookMode, openDraft } from './outlook'
 import { pickAndParse } from './importer'
 import { imageToDataUrl, pickAndScanCard } from './ocr'
 import { exportBackup, importBackup } from './backup'
+import { existingAttachments, pickAttachments } from './attachments'
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
@@ -20,6 +30,10 @@ export function registerIpcHandlers(): void {
     repo.updateContact(id, input)
   )
   ipcMain.handle('contacts:delete', (_e, id: number) => repo.deleteContact(id))
+  ipcMain.handle('contacts:deleteMany', (_e, ids: number[]) => repo.deleteContacts(ids))
+  ipcMain.handle('contacts:bulkUpdate', (_e, ids: number[], patch: BulkContactPatch) =>
+    repo.bulkUpdateContacts(ids, patch)
+  )
   ipcMain.handle('contacts:recent', (_e, limit?: number) => repo.recentContacts(limit))
 
   ipcMain.handle('ocr:scanCard', () => pickAndScanCard())
@@ -42,13 +56,27 @@ export function registerIpcHandlers(): void {
     repo.updateTemplate(id, input)
   )
   ipcMain.handle('templates:delete', (_e, id: number) => repo.deleteTemplate(id))
+  ipcMain.handle('templates:pickAttachments', () => pickAttachments())
 
   ipcMain.handle(
     'drafts:create',
-    async (_e, contactIds: number[], templateId: number): Promise<DraftResult[]> => {
+    async (
+      _e,
+      contactIds: number[],
+      templateId: number,
+      options: DraftOptions = {}
+    ): Promise<DraftResult[]> => {
       const template = repo.getTemplate(templateId)
       if (!template) throw new Error('템플릿을 찾을 수 없습니다')
       const contacts = repo.getContacts(contactIds)
+      const settings = repo.getSettings()
+      const mode = await effectiveOutlookMode(settings.outlookMode)
+      // 서명: 설정에서 켜져 있고, 이번 초안에서 끄지 않았을 때만
+      const useSignature = settings.signatureEnabled && options.includeSignature !== false
+      const signature = useSignature ? settings.signatureHtml.trim() : ''
+      const attachments = existingAttachments(template.attachments)
+      const cc = parseAddressList(options.cc)
+      const bcc = parseAddressList(options.bcc)
       const results: DraftResult[] = []
 
       for (const [i, contact] of contacts.entries()) {
@@ -64,12 +92,20 @@ export function registerIpcHandlers(): void {
         try {
           const subject = renderTemplate(template.subject_tpl, contact).text
           const body = renderTemplate(template.body_tpl, contact).text
-          const adapter = await openDraft({
-            to: contact.email.trim(),
-            subject,
-            html: bodyToHtml(body),
-            text: isHtmlBody(body) ? htmlToText(body) : body
-          })
+          const adapter = await openDraft(
+            {
+              to: contact.email.trim(),
+              cc,
+              bcc,
+              subject,
+              bodyFragment: bodyToHtmlFragment(body, signature),
+              text: isHtmlBody(body) ? htmlToText(body) : body,
+              // 앱 서명이 있으면 Outlook 기본 서명은 빼서 두 번 들어가지 않게
+              preserveOutlookSignature: signature === '',
+              attachments
+            },
+            mode
+          )
           repo.insertDraftLog({
             contactId: contact.id,
             templateId: template.id,
@@ -100,7 +136,10 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('drafts:history', () => repo.listDraftLogs())
 
   ipcMain.handle('system:version', () => app.getVersion())
-  ipcMain.handle('system:outlookMode', () => detectOutlookMode())
+  ipcMain.handle('system:outlookMode', () => effectiveOutlookMode(repo.getSettings().outlookMode))
+  ipcMain.handle('system:outlookDetected', () => detectOutlookMode())
+  ipcMain.handle('settings:get', () => repo.getSettings())
+  ipcMain.handle('settings:save', (_e, input: AppSettings) => repo.saveSettings(input))
   ipcMain.handle('system:openDataFolder', () => shell.openPath(app.getPath('userData')))
   ipcMain.handle('backup:export', () => exportBackup())
   ipcMain.handle('backup:import', () => importBackup())
