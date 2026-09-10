@@ -290,14 +290,18 @@ export default function ContactsView({
                     {c.department ? ` / ${c.department}` : ''}
                   </td>
                   <td>{c.title}</td>
-                  <td>{c.email || <span className="badge warn">이메일 없음</span>}</td>
+                  <td className="cell-email" title={c.email}>
+                    {c.email || <span className="badge warn">이메일 없음</span>}
+                  </td>
                   <td className="cell-tags">
-                    {c.tags.slice(0, 3).map((t) => (
-                      <span key={t} className="badge neutral">
-                        {t}
-                      </span>
-                    ))}
-                    {c.tags.length > 3 && <span className="muted">+{c.tags.length - 3}</span>}
+                    <span className="tag-list">
+                      {c.tags.slice(0, 3).map((t) => (
+                        <span key={t} className="badge neutral">
+                          {t}
+                        </span>
+                      ))}
+                      {c.tags.length > 3 && <span className="muted">+{c.tags.length - 3}</span>}
+                    </span>
                   </td>
                   <td className="col-actions">
                     <button

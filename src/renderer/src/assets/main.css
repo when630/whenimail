@@ -761,7 +761,7 @@ input[type='checkbox'] {
   padding: 4px 12px;
 }
 
-.cell-tags {
+.cell-tags .tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
@@ -842,12 +842,21 @@ input[type='checkbox'] {
 .cell-name {
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  min-width: 140px;
 }
 
 .name-with-avatar {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.cell-email {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .avatar {
